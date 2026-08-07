@@ -103,6 +103,11 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .message.assistant .message-avatar { color: var(--accent-bright); background: #16200e; border-color: #2b3b1c; }
 .message-body { min-width: 0; font-size: 14px; line-height: 1.7; }
 .message-name { margin: 2px 0 9px; font-size: 12px; font-weight: 650; color: #bfc6ca; }
+.message-actions { min-height: 27px; margin-top: 9px; display: flex; gap: 3px; opacity: 0; transition: opacity 150ms; }
+.message:hover .message-actions, .message:focus-within .message-actions { opacity: 1; }
+.message-actions:empty { display: none; }
+.message-actions button { height: 27px; padding: 0 7px; display: flex; align-items: center; gap: 5px; border: 0; border-radius: 6px; background: transparent; color: #79838a; font-size: 10px; cursor: pointer; }
+.message-actions button:hover { color: #dbe0e3; background: var(--surface-hover); }
 .thinking-panel { max-width: 100%; margin: 0 0 13px; border-left: 2px solid #3b454b; }
 .thinking-panel.is-streaming { border-left-color: var(--accent); }
 .thinking-panel > button { min-height: 29px; padding: 2px 7px 2px 10px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; color: #9ca5aa; cursor: pointer; font-size: 12px; }
@@ -160,6 +165,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
   .suggestion-grid { grid-template-columns: 1fr; gap: 8px; }.suggestion-grid button { min-height: 69px; padding: 12px; }
   .suggestion-grid button:nth-child(n+4) { display: none; }
   .message-list { padding: 12px 15px 35px; }.message { grid-template-columns: 27px minmax(0, 1fr); gap: 10px; }.message-avatar { width: 27px; height: 27px; }
+  .message-actions { opacity: 1; }
   .composer-wrap { padding: 8px 10px max(8px, env(safe-area-inset-bottom)); }.composer { border-radius: 15px; }
   .composer-hint { display: none; }
   .model-menu { left: -40px; }
