@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Check, Copy, Pencil, RefreshCw, UserRound } from "lucide-react";
+import { AlertCircle, Bot, Check, Copy, Pencil, RefreshCw, UserRound } from "lucide-react";
 import { useState } from "react";
 import type { ChatMessage as ChatMessageType } from "@/lib/types";
 import { MarkdownRenderer } from "./markdown-renderer";
@@ -10,13 +10,13 @@ type Props = {
   message: ChatMessageType;
   reasoningStreaming?: boolean;
   answerStreaming?: boolean;
-  canEdit?: boolean;
-  canRegenerate?: boolean;
+  showThinking?: boolean;
+  actionsEnabled?: boolean;
   onEdit?: () => void;
   onRegenerate?: () => void;
 };
 
-export function ChatMessage({ message, reasoningStreaming = false, answerStreaming = false, canEdit, canRegenerate, onEdit, onRegenerate }: Props) {
+export function ChatMessage({ message, reasoningStreaming = false, answerStreaming = false, showThinking = true, actionsEnabled = true, onEdit, onRegenerate }: Props) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -28,12 +28,13 @@ export function ChatMessage({ message, reasoningStreaming = false, answerStreami
       <div className="message-avatar" aria-hidden="true">{message.role === "assistant" ? <Bot size={17} /> : <UserRound size={17} />}</div>
       <div className="message-body">
         <div className="message-name">{message.role === "assistant" ? "Nemotron" : "You"}</div>
-        {message.role === "assistant" && <ThinkingPanel content={message.reasoning} streaming={reasoningStreaming} answerStarted={answerStreaming} />}
-        {message.content ? <MarkdownRenderer content={message.content} /> : reasoningStreaming ? null : <span className="response-cursor" />}
+        {message.role === "assistant" && showThinking && <ThinkingPanel content={message.reasoning} streaming={reasoningStreaming} answerStarted={answerStreaming} />}
+        {message.content ? <MarkdownRenderer content={message.content} /> : (reasoningStreaming && showThinking) || message.error ? null : <span className="response-cursor" />}
+        {message.error && <div className="message-error" role="alert"><AlertCircle size={16} /><span>{message.error}</span>{actionsEnabled && <button onClick={onRegenerate}>Retry</button>}</div>}
         <div className="message-actions">
-          {message.role === "assistant" && message.content && <button onClick={copy} aria-label="Copy assistant response" title="Copy response">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? "Copied" : "Copy"}</button>}
-          {canRegenerate && <button onClick={onRegenerate} aria-label="Regenerate response" title="Regenerate response"><RefreshCw size={14} />Regenerate</button>}
-          {canEdit && <button onClick={onEdit} aria-label="Edit latest prompt" title="Edit prompt"><Pencil size={14} />Edit</button>}
+          {message.content && <button onClick={copy} aria-label={`Copy ${message.role} message`} title="Copy message">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? "Copied" : "Copy"}</button>}
+          {message.role === "assistant" && actionsEnabled && <button onClick={onRegenerate} aria-label="Regenerate response" title="Regenerate response"><RefreshCw size={14} />Regenerate</button>}
+          {message.role === "user" && actionsEnabled && <button onClick={onEdit} aria-label="Edit prompt" title="Edit prompt"><Pencil size={14} />Edit</button>}
         </div>
       </div>
     </article>

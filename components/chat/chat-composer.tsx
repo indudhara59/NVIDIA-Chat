@@ -20,6 +20,9 @@ export function ChatComposer({ value, onChange, onSubmit, onStop, generating, di
     area.style.height = "0px";
     area.style.height = `${Math.min(area.scrollHeight, 176)}px`;
   }, [value]);
+  useEffect(() => {
+    if (!generating) textareaRef.current?.focus();
+  }, [generating]);
 
   const submit = (event: FormEvent) => { event.preventDefault(); onSubmit(); };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {

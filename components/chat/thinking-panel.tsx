@@ -32,7 +32,7 @@ export function ThinkingPanel({ content, streaming = false, answerStarted = fals
     <div className={`thinking-panel ${streaming ? "is-streaming" : ""}`}>
       <button onClick={() => setOpen((value) => !value)} aria-expanded={open}>
         <Brain size={16} />
-        <span>{streaming ? `Thinking… ${elapsed}s` : `Thinking${elapsed ? ` · ${elapsed}s` : ""}`}</span>
+        <span>{streaming ? `Thinking… ${elapsed}s` : elapsed ? `Thought for ${elapsed}s` : "Thinking complete"}</span>
         {streaming && <span className="thinking-dots" aria-hidden="true"><i /><i /><i /></span>}
         <ChevronDown size={15} className={open ? "rotate" : ""} />
       </button>

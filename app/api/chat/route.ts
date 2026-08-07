@@ -8,6 +8,19 @@ export const maxDuration = 300;
 const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 40_000;
 const MAX_TOTAL_LENGTH = 150_000;
+const MAX_BODY_BYTES = 200_000;
+const TOKEN_PRESETS = new Set([2048, 4096, 8192, 16384]);
+
+type SafeConfig = { temperature: number; maxTokens: number; reasoningBudget: number };
+
+function validateConfig(value: unknown): SafeConfig | null {
+  if (!value || typeof value !== "object") return null;
+  const { temperature, maxTokens, reasoningBudget } = value as Record<string, unknown>;
+  if (typeof temperature !== "number" || !Number.isFinite(temperature) || temperature < 0 || temperature > 2) return null;
+  if (typeof maxTokens !== "number" || !TOKEN_PRESETS.has(maxTokens)) return null;
+  if (typeof reasoningBudget !== "number" || !TOKEN_PRESETS.has(reasoningBudget)) return null;
+  return { temperature, maxTokens, reasoningBudget };
+}
 
 function validateMessages(value: unknown): ModelMessage[] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MESSAGES) return null;
@@ -28,8 +41,8 @@ function validateMessages(value: unknown): ModelMessage[] | null {
 }
 
 function upstreamError(status: number): { status: number; message: string } {
-  if (status === 401 || status === 403) return { status: 502, message: "The model service could not be authenticated." };
-  if (status === 429) return { status: 429, message: "Rate limit reached. Please try again shortly." };
+  if (status === 401 || status === 403) return { status: 502, message: "Authentication with the model provider failed." };
+  if (status === 429) return { status: 429, message: "The model is receiving too many requests. Try again shortly." };
   if (status >= 500) return { status: 502, message: "The model service is temporarily unavailable." };
   return { status: 502, message: "Unable to connect to the model." };
 }
@@ -39,9 +52,13 @@ function encode(event: ChatStreamEvent): Uint8Array {
 }
 
 export async function POST(request: Request) {
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > MAX_BODY_BYTES) return Response.json({ error: "Request payload is too large." }, { status: 413 });
   let body: unknown;
   try {
-    body = await request.json();
+    const rawBody = await request.text();
+    if (rawBody.length > MAX_BODY_BYTES) return Response.json({ error: "Request payload is too large." }, { status: 413 });
+    body = JSON.parse(rawBody);
   } catch {
     return Response.json({ error: "Request body must be valid JSON." }, { status: 400 });
   }
@@ -50,6 +67,8 @@ export async function POST(request: Request) {
   if (!messages) {
     return Response.json({ error: "Messages must be a non-empty, valid conversation within size limits." }, { status: 400 });
   }
+  const config = validateConfig((body as { config?: unknown } | null)?.config);
+  if (!config) return Response.json({ error: "Model configuration is invalid." }, { status: 400 });
 
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) {
@@ -68,12 +87,12 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: NVIDIA_MODEL_CONFIG.model,
         messages,
-        temperature: NVIDIA_MODEL_CONFIG.temperature,
+        temperature: config.temperature,
         top_p: NVIDIA_MODEL_CONFIG.topP,
-        max_tokens: NVIDIA_MODEL_CONFIG.maxTokens,
+        max_tokens: config.maxTokens,
         stream: true,
         chat_template_kwargs: { enable_thinking: NVIDIA_MODEL_CONFIG.enableThinking },
-        reasoning_budget: NVIDIA_MODEL_CONFIG.reasoningBudget,
+        reasoning_budget: config.reasoningBudget,
       }),
       signal: request.signal,
       cache: "no-store",
@@ -81,7 +100,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (request.signal.aborted) return new Response(null, { status: 499 });
     console.error("NVIDIA request failed", error instanceof Error ? error.message : "Unknown network error");
-    return Response.json({ error: "Unable to connect to the model." }, { status: 502 });
+    return Response.json({ error: "Connection lost while generating the response." }, { status: 502 });
   }
 
   if (!upstream.ok || !upstream.body) {
@@ -146,7 +165,7 @@ export async function POST(request: Request) {
       } catch (error) {
         if (!request.signal.aborted) {
           console.error("NVIDIA stream failed", error instanceof Error ? error.message : "Unknown stream error");
-          controller.enqueue(encode({ type: "error", message: "The model response was interrupted." }));
+          controller.enqueue(encode({ type: "error", message: "Connection lost while generating the response." }));
           controller.close();
         }
       } finally {

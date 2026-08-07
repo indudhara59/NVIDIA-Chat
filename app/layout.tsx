@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Nemotron Chat",
-  description: "A premium chat experience powered by NVIDIA Nemotron 3 Ultra.",
+  description: "Chat with NVIDIA Nemotron 3 Ultra.",
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {
