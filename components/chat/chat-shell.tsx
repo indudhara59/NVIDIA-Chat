@@ -213,7 +213,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         </div>
         {showScrollButton && <button className="scroll-bottom" onClick={() => scrollToBottom()} aria-label="Scroll to bottom"><ArrowDown size={18} /></button>}
         {storageError && <div className="storage-error" role="status">{storageError}<button onClick={() => setStorageError(null)} aria-label="Dismiss">×</button></div>}
-        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle" || !hydrated} />
+        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} />
       </section>
       <SettingsDialog open={settingsOpen} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} />
     </main>
