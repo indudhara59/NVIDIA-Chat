@@ -31,6 +31,8 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   const activeIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
+  const userScrollLockedRef = useRef(false);
+  const touchYRef = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -67,6 +69,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior });
     nearBottomRef.current = true;
+    userScrollLockedRef.current = false;
     setShowScrollButton(false);
   }, []);
 
@@ -94,13 +97,13 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   }, []);
 
   const newChat = () => {
-    stop(); activeIdRef.current = null; setActiveId(null); setMessages([]); setInput(""); setMobileOpen(false); nearBottomRef.current = true;
+    stop(); activeIdRef.current = null; setActiveId(null); setMessages([]); setInput(""); setMobileOpen(false); nearBottomRef.current = true; userScrollLockedRef.current = false;
   };
   const selectChat = (id: string) => {
     stop();
     const chat = conversations.find((item) => item.id === id);
     if (!chat) return;
-    activeIdRef.current = id; setActiveId(id); setMessages(chat.messages); setMobileOpen(false); nearBottomRef.current = true;
+    activeIdRef.current = id; setActiveId(id); setMessages(chat.messages); setMobileOpen(false); nearBottomRef.current = true; userScrollLockedRef.current = false;
     requestAnimationFrame(() => scrollToBottom("auto"));
   };
 
@@ -108,12 +111,17 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     const assistantId = crypto.randomUUID();
     const withPlaceholder = [...nextMessages, { id: assistantId, role: "assistant", content: "", createdAt: currentTime() + 1 } satisfies ChatMessageType];
     let streamedMessages = withPlaceholder;
-    const updateStream = (updater: (current: ChatMessageType[]) => ChatMessageType[]) => {
-      streamedMessages = updater(streamedMessages);
+    let renderTimer: ReturnType<typeof setTimeout> | null = null;
+    const flushStream = () => {
+      renderTimer = null;
       if (activeIdRef.current === chatId) setMessages(streamedMessages);
     };
+    const updateStream = (updater: (current: ChatMessageType[]) => ChatMessageType[]) => {
+      streamedMessages = updater(streamedMessages);
+      if (activeIdRef.current === chatId && !renderTimer) renderTimer = setTimeout(flushStream, 50);
+    };
     commitMessages(chatId, () => withPlaceholder);
-    setInput(""); setGeneration("thinking"); nearBottomRef.current = true;
+    setInput(""); setGeneration("thinking"); nearBottomRef.current = true; userScrollLockedRef.current = false;
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -155,6 +163,8 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         updateStream((current) => current.map((item) => item.id === assistantId ? { ...item, error: message } : item));
       }
     } finally {
+      if (renderTimer) clearTimeout(renderTimer);
+      flushStream();
       setConversations((current) => current.map((chat) => chat.id === chatId ? { ...chat, messages: streamedMessages, updatedAt: currentTime() } : chat).sort((a, b) => b.updatedAt - a.updatedAt));
       if (abortRef.current === controller) { abortRef.current = null; setGeneration("idle"); }
     }
@@ -203,8 +213,15 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   };
   const onScroll = () => {
     const element = scrollRef.current; if (!element) return;
-    const near = element.scrollHeight - element.scrollTop - element.clientHeight < 120;
-    nearBottomRef.current = near; setShowScrollButton(!near && messages.length > 0);
+    const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
+    if (distance < 24) userScrollLockedRef.current = false;
+    const shouldFollow = distance < 120 && !userScrollLockedRef.current;
+    nearBottomRef.current = shouldFollow; setShowScrollButton((distance >= 24 || userScrollLockedRef.current) && messages.length > 0);
+  };
+  const pauseAutoScroll = () => {
+    userScrollLockedRef.current = true;
+    nearBottomRef.current = false;
+    setShowScrollButton(messages.length > 0);
   };
 
   const lastAssistantId = [...messages].reverse().find((message) => message.role === "assistant")?.id;
@@ -213,7 +230,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} conversations={conversations} activeId={activeId} user={user} onCloseMobile={() => setMobileOpen(false)} onCollapse={() => setSidebarCollapsed(true)} onNewChat={newChat} onSelect={selectChat} onRename={renameChat} onDelete={deleteChat} onClear={clearChats} onOpenSettings={() => setSettingsOpen(true)} />
       <section className="main-panel">
         <Header sidebarCollapsed={sidebarCollapsed} onOpenSidebar={() => { if (window.innerWidth < 768) setMobileOpen(true); else setSidebarCollapsed(false); }} />
-        <div className="conversation-scroll" ref={scrollRef} onScroll={onScroll}>
+        <div className="conversation-scroll" ref={scrollRef} onScroll={onScroll} onWheelCapture={(event) => { if (event.deltaY < 0) pauseAutoScroll(); }} onTouchStart={(event) => { touchYRef.current = event.touches[0]?.clientY ?? null; }} onTouchMove={(event) => { const y = event.touches[0]?.clientY; if (y !== undefined && touchYRef.current !== null && y > touchYRef.current + 3) pauseAutoScroll(); touchYRef.current = y ?? null; }}>
           {messages.length === 0 ? <EmptyState onSelect={setInput} /> : <div className="message-list">{messages.map((message) => <ChatMessage key={message.id} message={message} reasoningStreaming={message.id === lastAssistantId && generation === "thinking"} answerStreaming={message.id === lastAssistantId && generation === "answering"} showThinking={settings.showThinking} actionsEnabled={generation === "idle"} onEdit={() => editMessage(message.id)} onRegenerate={() => regenerate(message.id)} />)}</div>}
         </div>
         {showScrollButton && <button className="scroll-bottom" onClick={() => scrollToBottom()} aria-label="Scroll to bottom"><ArrowDown size={18} /></button>}
