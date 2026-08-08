@@ -13,7 +13,7 @@ const MAX_BODY_BYTES = 200_000;
 const TOKEN_PRESETS = new Set([2048, 4096, 8192, 16384]);
 
 type ResponseTone = "professional" | "teacher" | "student" | "custom";
-type SafeConfig = { temperature: number; maxTokens: number; reasoningBudget: number; enableThinking: boolean; tone: ResponseTone; customInstructions: string; projectInstructions: string };
+type SafeConfig = { temperature: number; maxTokens: number; reasoningBudget: number; enableThinking: boolean; tone: ResponseTone; customInstructions: string; projectInstructions: string; personalMemory: string };
 
 const TONE_PROMPTS: Record<Exclude<ResponseTone, "custom">, string> = {
   professional: "Respond in a polished, precise, professional tone. Be clear and well structured.",
@@ -23,7 +23,7 @@ const TONE_PROMPTS: Record<Exclude<ResponseTone, "custom">, string> = {
 
 function validateConfig(value: unknown): SafeConfig | null {
   if (!value || typeof value !== "object") return null;
-  const { temperature, maxTokens, reasoningBudget, enableThinking, tone, customInstructions, projectInstructions } = value as Record<string, unknown>;
+  const { temperature, maxTokens, reasoningBudget, enableThinking, tone, customInstructions, projectInstructions, personalMemory } = value as Record<string, unknown>;
   if (typeof temperature !== "number" || !Number.isFinite(temperature) || temperature < 0 || temperature > 2) return null;
   if (typeof maxTokens !== "number" || !TOKEN_PRESETS.has(maxTokens)) return null;
   if (typeof reasoningBudget !== "number" || !TOKEN_PRESETS.has(reasoningBudget)) return null;
@@ -31,7 +31,8 @@ function validateConfig(value: unknown): SafeConfig | null {
   if (tone !== "professional" && tone !== "teacher" && tone !== "student" && tone !== "custom") return null;
   if (typeof customInstructions !== "string" || customInstructions.length > 500) return null;
   if (typeof projectInstructions !== "string" || projectInstructions.length > 2000) return null;
-  return { temperature, maxTokens, reasoningBudget, enableThinking, tone, customInstructions, projectInstructions };
+  if (typeof personalMemory !== "string" || personalMemory.length > 2000) return null;
+  return { temperature, maxTokens, reasoningBudget, enableThinking, tone, customInstructions, projectInstructions, personalMemory };
 }
 
 function validateMessages(value: unknown): ModelMessage[] | null {
@@ -94,9 +95,8 @@ export async function POST(request: Request) {
     const styleInstruction = config.tone === "custom"
       ? config.customInstructions.trim() || TONE_PROMPTS.professional
       : TONE_PROMPTS[config.tone];
-    const systemInstruction = config.projectInstructions.trim()
-      ? `${styleInstruction}\n\nProject context and instructions:\n${config.projectInstructions.trim()}`
-      : styleInstruction;
+    const context = [config.personalMemory.trim() ? `User-provided memory:\n${config.personalMemory.trim()}` : "", config.projectInstructions.trim() ? `Project context and instructions:\n${config.projectInstructions.trim()}` : ""].filter(Boolean).join("\n\n");
+    const systemInstruction = context ? `${styleInstruction}\n\n${context}` : styleInstruction;
     upstream = await fetch(NVIDIA_MODEL_CONFIG.endpoint, {
       method: "POST",
       headers: {

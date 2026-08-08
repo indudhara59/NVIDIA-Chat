@@ -34,6 +34,8 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [memory, setMemory] = useState("");
+  const [memoryLoaded, setMemoryLoaded] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -65,6 +67,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ projects: ChatProject[] }>; })
       .then((data) => { if (active) setProjects(data.projects); })
       .catch(() => { if (active) setStorageError("Could not load your projects."); });
+    void fetch("/api/memory", { cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ content: string }> : { content: "" }).then((data) => { if (active) setMemory(data.content); }).finally(() => { if (active) setMemoryLoaded(true); });
     return () => { active = false; };
   }, [user.email]);
   useEffect(() => {
@@ -82,6 +85,11 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     return () => window.clearTimeout(timer);
   }, [conversations, activeId, hydrated, generation]);
   useEffect(() => { if (hydrated) saveSettings(settings); }, [settings, hydrated]);
+  useEffect(() => {
+    if (!hydrated || !memoryLoaded) return;
+    const timer = window.setTimeout(() => { void fetch("/api/memory", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: memory }) }); }, 500);
+    return () => window.clearTimeout(timer);
+  }, [memory, hydrated, memoryLoaded]);
   useEffect(() => {
     const root = document.documentElement;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -172,7 +180,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: modelMessages, config: { temperature: responseSettings.temperature, maxTokens: responseSettings.maxTokens, reasoningBudget: responseSettings.reasoningBudget, enableThinking: responseSettings.showThinking, tone: responseSettings.tone, customInstructions: responseSettings.customInstructions, projectInstructions: projects.find((project) => project.id === activeProjectId)?.instructions || "" } }),
+        body: JSON.stringify({ messages: modelMessages, config: { temperature: responseSettings.temperature, maxTokens: responseSettings.maxTokens, reasoningBudget: responseSettings.reasoningBudget, enableThinking: responseSettings.showThinking, tone: responseSettings.tone, customInstructions: responseSettings.customInstructions, projectInstructions: projects.find((project) => project.id === activeProjectId)?.instructions || "", personalMemory: memory } }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -358,7 +366,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         {storageError && <div className="storage-error" role="status">{storageError}<button onClick={() => setStorageError(null)} aria-label="Dismiss">×</button></div>}
         <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} deepThinking={settings.showThinking} onToggleThinking={() => setSettings((current) => ({ ...current, showThinking: !current.showThinking }))} attachments={pendingAttachments} uploading={uploading} onFiles={(files) => void uploadFiles(files)} onRemoveAttachment={removePendingAttachment} />
       </section>
-      <SettingsDialog open={settingsOpen} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} onDeleteAccount={deleteAccountData} />
+      <SettingsDialog open={settingsOpen} settings={settings} memory={memory} onChange={updateSettings} onMemoryChange={setMemory} onClose={() => setSettingsOpen(false)} onDeleteAccount={deleteAccountData} />
       {artifact && <ArtifactPanel artifact={artifact} onChange={(code) => setArtifact((current) => current ? { ...current, code } : null)} onClose={() => setArtifact(null)} />}
     </main>
   );

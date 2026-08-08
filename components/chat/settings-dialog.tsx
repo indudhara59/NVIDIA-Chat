@@ -7,7 +7,7 @@ import type { ChatSettings } from "@/lib/types";
 
 const presets = [2048, 4096, 8192, 16384] as const;
 
-export function SettingsDialog({ open, settings, onChange, onClose, onDeleteAccount }: { open: boolean; settings: ChatSettings; onChange: (settings: ChatSettings) => void; onClose: () => void; onDeleteAccount: () => void }) {
+export function SettingsDialog({ open, settings, memory, onChange, onMemoryChange, onClose, onDeleteAccount }: { open: boolean; settings: ChatSettings; memory: string; onChange: (settings: ChatSettings) => void; onMemoryChange: (memory: string) => void; onClose: () => void; onDeleteAccount: () => void }) {
   useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -27,6 +27,7 @@ export function SettingsDialog({ open, settings, onChange, onClose, onDeleteAcco
         <label className="setting-field"><span><strong>Response tone</strong><small>Choose how answers should be written.</small></span><select value={settings.tone} onChange={(event) => onChange({ ...settings, tone: event.target.value as ChatSettings["tone"] })}><option value="professional">Professional</option><option value="teacher">Teacher</option><option value="student">Student-friendly</option><option value="custom">Customized</option></select></label>
         {settings.tone === "custom" && <label className="custom-setting"><span><strong>Custom instructions</strong><small>Describe the tone and style you prefer. Maximum 500 characters.</small></span><textarea rows={3} maxLength={500} value={settings.customInstructions} onChange={(event) => onChange({ ...settings, customInstructions: event.target.value })} placeholder="For example: Be concise, use practical examples, and explain technical terms." /><em>{settings.customInstructions.length}/500</em></label>}
         <label className="setting-field"><span><strong>Theme</strong><small>Choose the application appearance.</small></span><select value={settings.theme} onChange={(event) => onChange({ ...settings, theme: event.target.value as ChatSettings["theme"] })}><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label>
+        <label className="custom-setting memory-setting"><span><strong>Memory</strong><small>Information you explicitly want Nemotron to remember across conversations. You can inspect, edit, or erase it at any time.</small></span><textarea rows={4} maxLength={2000} value={memory} onChange={(event) => onMemoryChange(event.target.value)} placeholder="For example: I am learning TypeScript. Prefer practical examples and explain unfamiliar terminology." /><em>{memory.length}/2000</em></label>
         <div className="danger-zone"><span><strong>Delete account data</strong><small>Permanently delete all of your saved conversations and sign out.</small></span><button onClick={() => { if (window.confirm("Permanently delete all saved conversations and sign out? This cannot be undone.")) onDeleteAccount(); }}><Trash2 size={14} />Delete data</button></div>
         <footer><button onClick={() => onChange(DEFAULT_SETTINGS)}><RotateCcw size={14} />Reset defaults</button><button className="done-button" onClick={onClose}>Done</button></footer>
       </section>
