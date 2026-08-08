@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Bot, Check, Copy, GitBranch, GitCompareArrows, Pencil, RefreshCw, UserRound } from "lucide-react";
+import { AlertCircle, Bot, Check, Copy, FileText, GitBranch, GitCompareArrows, Pencil, RefreshCw, UserRound } from "lucide-react";
 import { useState } from "react";
 import type { ChatMessage as ChatMessageType } from "@/lib/types";
 import { MarkdownRenderer } from "./markdown-renderer";
@@ -32,6 +32,7 @@ export function ChatMessage({ message, reasoningStreaming = false, answerStreami
         <div className="message-name">{message.role === "assistant" ? "Nemotron" : "You"}</div>
         {message.role === "assistant" && showThinking && <ThinkingPanel content={message.reasoning} streaming={reasoningStreaming} answerStarted={answerStreaming} />}
         {message.content ? <MarkdownRenderer content={message.content} /> : (reasoningStreaming && showThinking) || message.error ? null : <span className="response-cursor" />}
+        {message.attachments?.length ? <div className="message-attachments">{message.attachments.map((file) => <a key={file.id} href={`/api/attachments?id=${encodeURIComponent(file.id)}`} target="_blank" rel="noreferrer"><FileText size={14} /><span>{file.name}</span><small>{Math.max(1, Math.round(file.size / 1024))} KB</small></a>)}</div> : null}
         {message.error && <div className="message-error" role="alert"><AlertCircle size={16} /><span>{message.error}</span>{actionsEnabled && <button onClick={onRegenerate}>Retry</button>}</div>}
         <div className="message-actions">
           {message.content && <button onClick={copy} aria-label={`Copy ${message.role} message`} title="Copy message">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? "Copied" : "Copy"}</button>}

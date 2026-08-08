@@ -5,7 +5,7 @@ import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatStreamEvent, ModelMessage } from "@/lib/chat-protocol";
 import { clearConversationCache, createTitle, DEFAULT_SETTINGS, loadConversationCache, loadSettings, saveConversationCache, saveSettings } from "@/lib/chat-storage";
-import type { ChatMessage as ChatMessageType, ChatProject, ChatSettings, Conversation, GenerationState } from "@/lib/types";
+import type { ChatAttachment, ChatMessage as ChatMessageType, ChatProject, ChatSettings, Conversation, GenerationState } from "@/lib/types";
 import { ChatComposer } from "./chat-composer";
 import { ChatMessage } from "./chat-message";
 import { EmptyState } from "./empty-state";
@@ -32,6 +32,8 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -133,7 +135,8 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   }, []);
 
   const newChat = () => {
-    stop(); activeIdRef.current = null; setActiveId(null); setMessages([]); setInput(""); setMobileOpen(false); nearBottomRef.current = true; userScrollLockedRef.current = false;
+    pendingAttachments.forEach((file) => { void fetch(`/api/attachments?id=${encodeURIComponent(file.id)}`, { method: "DELETE" }); });
+    stop(); activeIdRef.current = null; setActiveId(null); setMessages([]); setInput(""); setPendingAttachments([]); setMobileOpen(false); nearBottomRef.current = true; userScrollLockedRef.current = false;
   };
   const selectChat = (id: string) => {
     stop();
@@ -162,7 +165,10 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     abortRef.current = controller;
 
     try {
-      const modelMessages: ModelMessage[] = nextMessages.map(({ role, content }) => ({ role, content }));
+      const modelMessages: ModelMessage[] = nextMessages.map(({ role, content, attachments }) => {
+        const fileContext = attachments?.filter((file) => file.textContent).map((file) => `\n\n<attached-file name="${file.name.replaceAll('"', "")}">\n${file.textContent}\n</attached-file>`).join("") || "";
+        return { role, content: `${content}${fileContext}` };
+      });
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -210,13 +216,14 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     const prompt = input.trim();
     if (!prompt || generation !== "idle" || abortRef.current) return;
     const chatId = activeId || crypto.randomUUID();
-    const userMessage: ChatMessageType = { id: crypto.randomUUID(), role: "user", content: prompt, createdAt: currentTime() };
+    const userMessage: ChatMessageType = { id: crypto.randomUUID(), role: "user", content: prompt, attachments: pendingAttachments.length ? pendingAttachments : undefined, createdAt: currentTime() };
     const nextMessages = [...messages, userMessage];
     if (!activeId) {
       const now = currentTime();
       activeIdRef.current = chatId; setActiveId(chatId);
       setConversations((current) => [{ id: chatId, title: createTitle(prompt), messages: [], projectId: activeProjectId, createdAt: now, updatedAt: now }, ...current]);
     }
+    setPendingAttachments([]);
     void streamConversation(chatId, nextMessages);
   };
 
@@ -232,6 +239,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     const index = messages.findIndex((message) => message.id === messageId);
     if (index < 0 || messages[index].role !== "user") return;
     setInput(messages[index].content);
+    setPendingAttachments(messages[index].attachments || []);
     commitMessages(activeId, (current) => current.slice(0, index));
   };
   const branchConversation = (messageId: string, compare = false) => {
@@ -306,6 +314,23 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       await signOut({ callbackUrl: "/" });
     });
   };
+  const uploadFiles = async (files: FileList) => {
+    setUploading(true); setStorageError(null);
+    for (const file of Array.from(files).slice(0, Math.max(0, 5 - pendingAttachments.length))) {
+      const form = new FormData(); form.set("file", file);
+      try {
+        const response = await fetch("/api/attachments", { method: "POST", body: form });
+        const data = await response.json() as { attachment?: ChatAttachment; error?: string };
+        if (!response.ok || !data.attachment) throw new Error(data.error || "Upload failed.");
+        setPendingAttachments((current) => [...current, data.attachment!].slice(0, 5));
+      } catch (error) { setStorageError(error instanceof Error ? error.message : "The file could not be uploaded."); }
+    }
+    setUploading(false);
+  };
+  const removePendingAttachment = (id: string) => {
+    setPendingAttachments((current) => current.filter((file) => file.id !== id));
+    void fetch(`/api/attachments?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  };
   const onScroll = () => {
     const element = scrollRef.current; if (!element) return;
     const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -331,7 +356,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         </div>
         {showScrollButton && <button className="scroll-bottom" onClick={() => scrollToBottom()} aria-label="Scroll to bottom"><ArrowDown size={18} /></button>}
         {storageError && <div className="storage-error" role="status">{storageError}<button onClick={() => setStorageError(null)} aria-label="Dismiss">×</button></div>}
-        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} deepThinking={settings.showThinking} onToggleThinking={() => setSettings((current) => ({ ...current, showThinking: !current.showThinking }))} />
+        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} deepThinking={settings.showThinking} onToggleThinking={() => setSettings((current) => ({ ...current, showThinking: !current.showThinking }))} attachments={pendingAttachments} uploading={uploading} onFiles={(files) => void uploadFiles(files)} onRemoveAttachment={removePendingAttachment} />
       </section>
       <SettingsDialog open={settingsOpen} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} onDeleteAccount={deleteAccountData} />
       {artifact && <ArtifactPanel artifact={artifact} onChange={(code) => setArtifact((current) => current ? { ...current, code } : null)} onClose={() => setArtifact(null)} />}

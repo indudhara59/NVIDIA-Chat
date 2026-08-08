@@ -29,6 +29,7 @@ MONGODB_DB=nemotron-chat
 AUTH_SECRET=generate-a-long-random-secret
 AUTH_GOOGLE_ID=your-google-client-id
 AUTH_GOOGLE_SECRET=your-google-client-secret
+BLOB_READ_WRITE_TOKEN=vercel_blob_...
 ```
 
 Generate `AUTH_SECRET` with `npx auth secret`, or use a securely generated random value. Do not commit `.env.local`.
@@ -71,6 +72,14 @@ Google requires redirect URIs to match exactly. Production redirect URIs must us
 
 Each conversation document includes an authenticated owner identifier. Every database operation filters on that owner, preventing users from reading or modifying another user's chats.
 
+## Vercel Blob setup
+
+1. In the Vercel project, open **Storage** and create a Blob store with private access.
+2. Connect it to this project. Vercel adds `BLOB_READ_WRITE_TOKEN` automatically.
+3. Pull the environment variables locally with `vercel env pull`, or copy the token into `.env.local` for local testing.
+
+Uploads are server-mediated, authenticated, limited to five files per message and 4 MB per file, and restricted to PDF, text, Markdown, CSV, JSON, PNG, JPEG, and WebP. Blob paths do not contain user email addresses. Downloads are proxied through an authenticated ownership check.
+
 ## Environment variables
 
 ```env
@@ -80,6 +89,7 @@ MONGODB_DB=nemotron-chat
 AUTH_SECRET=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
+BLOB_READ_WRITE_TOKEN=
 ```
 
 All credentials must remain server-side. Never add `NEXT_PUBLIC_` to any API key, database URI, OAuth secret, or Auth.js secret.
@@ -89,7 +99,7 @@ All credentials must remain server-side. Never add `NEXT_PUBLIC_` to any API key
 1. Push the repository to GitHub.
 2. Import the repository into Vercel.
 3. Go to **Vercel Project → Settings → Environment Variables**.
-4. Add `NVIDIA_API_KEY`, `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET`.
+4. Add `NVIDIA_API_KEY`, `MONGODB_URI`, `MONGODB_DB`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `BLOB_READ_WRITE_TOKEN` (the last value is added automatically when a Blob store is connected).
 5. Add the Vercel deployment callback URL to Google OAuth: `https://YOUR_DOMAIN/api/auth/callback/google`.
 6. Redeploy the project.
 7. Open the deployment URL and sign in with Google.

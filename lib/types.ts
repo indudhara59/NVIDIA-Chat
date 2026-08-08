@@ -1,11 +1,21 @@
 export type MessageRole = "user" | "assistant";
 
+export type ChatAttachment = {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
+  createdAt: number;
+  textContent?: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: MessageRole;
   content: string;
   reasoning?: string;
   error?: string;
+  attachments?: ChatAttachment[];
   createdAt: number;
 };
 

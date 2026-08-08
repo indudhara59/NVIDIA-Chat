@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowUp, Brain, Paperclip, Square, Zap } from "lucide-react";
+import { ArrowUp, Brain, FileText, LoaderCircle, Paperclip, Square, X, Zap } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef } from "react";
+import type { ChatAttachment } from "@/lib/types";
 
 type Props = {
   value: string;
@@ -12,10 +13,15 @@ type Props = {
   disabled?: boolean;
   deepThinking: boolean;
   onToggleThinking: () => void;
+  attachments: ChatAttachment[];
+  uploading: boolean;
+  onFiles: (files: FileList) => void;
+  onRemoveAttachment: (id: string) => void;
 };
 
-export function ChatComposer({ value, onChange, onSubmit, onStop, generating, disabled = false, deepThinking, onToggleThinking }: Props) {
+export function ChatComposer({ value, onChange, onSubmit, onStop, generating, disabled = false, deepThinking, onToggleThinking, attachments, uploading, onFiles, onRemoveAttachment }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const area = textareaRef.current;
     if (!area) return;
@@ -34,9 +40,11 @@ export function ChatComposer({ value, onChange, onSubmit, onStop, generating, di
   return (
     <div className="composer-wrap">
       <form className="composer" onSubmit={submit}>
+        {attachments.length > 0 && <div className="attachment-chips">{attachments.map((file) => <span key={file.id}><FileText size={14} /><span>{file.name}</span><button type="button" onClick={() => onRemoveAttachment(file.id)} aria-label={`Remove ${file.name}`}><X size={13} /></button></span>)}</div>}
         <textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={keyDown} placeholder="Message Nemotron…" rows={1} disabled={disabled} aria-label="Message Nemotron" />
         <div className="composer-tools">
-          <button type="button" className="attach-button" aria-label="Attach file" title="Attachments coming soon" disabled><Paperclip size={18} /></button>
+          <input ref={fileRef} className="file-input" type="file" multiple accept=".pdf,.txt,.md,.csv,.json,.png,.jpg,.jpeg,.webp" onChange={(event) => { if (event.target.files?.length) onFiles(event.target.files); event.target.value = ""; }} />
+          <button type="button" className="attach-button" aria-label="Attach file" title="Attach file" disabled={disabled || uploading} onClick={() => fileRef.current?.click()}>{uploading ? <LoaderCircle className="spin" size={17} /> : <Paperclip size={18} />}</button>
           <button type="button" className={`mode-button ${deepThinking ? "deep" : ""}`} onClick={onToggleThinking} disabled={generating} aria-label={`Switch to ${deepThinking ? "fast response" : "deep thinking"}`} title={deepThinking ? "Deep thinking enabled" : "Fast response enabled"}>{deepThinking ? <Brain size={15} /> : <Zap size={15} />}<span>{deepThinking ? "Deep" : "Fast"}</span></button>
           <span className="composer-hint">Shift + Enter for new line</span>
           {generating ? (

@@ -1,3 +1,4 @@
+import { del } from "@vercel/blob";
 import { auth } from "@/auth";
 import { getDatabase } from "@/lib/mongodb";
 
@@ -10,7 +11,9 @@ export async function DELETE() {
   if (!owner) return Response.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const db = await getDatabase();
-    await Promise.all([db.collection("conversations").deleteMany({ userId: owner }), db.collection("projects").deleteMany({ userId: owner })]);
+    const attachments = await db.collection<{ userId: string; pathname: string }>("attachments").find({ userId: owner }).project({ pathname: 1 }).toArray();
+    if (attachments.length) await del(attachments.map((file) => file.pathname));
+    await Promise.all([db.collection("conversations").deleteMany({ userId: owner }), db.collection("projects").deleteMany({ userId: owner }), db.collection("attachments").deleteMany({ userId: owner })]);
     return Response.json({ ok: true });
   } catch (error) {
     console.error("Account data deletion failed", error instanceof Error ? error.message : "Unknown database error");
