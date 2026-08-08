@@ -1,12 +1,15 @@
 import type { ChatSettings } from "@/lib/types";
 
-const SETTINGS_KEY = "nemotron-chat:settings:v2";
+const SETTINGS_KEY = "nemotron-chat:settings:v3";
 
 export const DEFAULT_SETTINGS: ChatSettings = {
   showThinking: false,
   temperature: 1,
   maxTokens: 4096,
   reasoningBudget: 2048,
+  tone: "professional",
+  customInstructions: "",
+  theme: "dark",
 };
 
 export function createTitle(prompt: string): string {
@@ -19,11 +22,16 @@ export function loadSettings(): ChatSettings {
     const value = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null") as Partial<ChatSettings> | null;
     if (!value) return DEFAULT_SETTINGS;
     const tokenPresets = [2048, 4096, 8192, 16384];
+    const tones = ["professional", "teacher", "student", "custom"];
+    const themes = ["dark", "light", "system"];
     return {
       showThinking: typeof value.showThinking === "boolean" ? value.showThinking : false,
       temperature: typeof value.temperature === "number" && value.temperature >= 0 && value.temperature <= 2 ? value.temperature : 1,
       maxTokens: tokenPresets.includes(value.maxTokens || 0) ? value.maxTokens as ChatSettings["maxTokens"] : 4096,
       reasoningBudget: tokenPresets.includes(value.reasoningBudget || 0) ? value.reasoningBudget as ChatSettings["reasoningBudget"] : 2048,
+      tone: tones.includes(value.tone || "") ? value.tone as ChatSettings["tone"] : "professional",
+      customInstructions: typeof value.customInstructions === "string" ? value.customInstructions.slice(0, 500) : "",
+      theme: themes.includes(value.theme || "") ? value.theme as ChatSettings["theme"] : "dark",
     };
   } catch {
     return DEFAULT_SETTINGS;

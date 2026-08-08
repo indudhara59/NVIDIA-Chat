@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: dark;
   --bg: #080a0c;
   --panel: #0d1013;
   --surface: #12161a;
@@ -12,6 +13,12 @@
   --muted-2: #69737a;
   --accent: #76b900;
   --accent-bright: #8bd000;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f8f6; --panel: #eef0ed; --surface: #ffffff; --surface-hover: #e5e8e3;
+  --line: #d5dad3; --line-soft: #e0e4de; --text: #171b18; --muted: #68716a; --muted-2: #858e87;
 }
 
 * { box-sizing: border-box; }
@@ -164,6 +171,8 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .composer textarea::placeholder { color: #6f797f; }.composer textarea:disabled { opacity: .7; }
 .composer-tools { height: 28px; display: flex; align-items: center; }
 .attach-button { width: 28px; height: 28px; display: grid; place-items: center; border: 0; background: transparent; color: #68737a; opacity: .55; }
+.mode-button { height: 27px; margin-left: 3px; padding: 0 8px; display: flex; align-items: center; gap: 5px; border: 1px solid #334029; border-radius: 7px; background: #182015; color: #a8d56a; font-size: 10px; cursor: pointer; }
+.mode-button.deep { border-color: #554d35; background: #211e15; color: #e0c56f; }.mode-button:disabled { opacity: .5; cursor: default; }
 .composer-hint { margin-left: 7px; color: #596269; font-size: 10px; }
 .send-button { width: 29px; height: 29px; margin-left: auto; border: 0; border-radius: 8px; display: grid; place-items: center; color: #071000; background: var(--accent); cursor: pointer; transition: background 150ms, transform 150ms, opacity 150ms; }
 .send-button:hover:not(:disabled) { background: var(--accent-bright); transform: translateY(-1px); }.send-button:disabled { opacity: .25; cursor: default; }
@@ -191,6 +200,15 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .setting-field input[type="range"] { width: 145px; accent-color: var(--accent); }.setting-field select { min-width: 112px; height: 34px; padding: 0 9px; border: 1px solid #333b41; border-radius: 7px; background: #171c20; color: var(--text); }
 .settings-dialog footer { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
 .settings-dialog footer button { height: 34px; padding: 0 11px; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; }.settings-dialog footer button:hover { background: var(--surface-hover); color: var(--text); }.settings-dialog footer .done-button { background: var(--accent); color: #071000; font-weight: 600; }
+.custom-setting { padding: 14px 20px; display: flex; flex-direction: column; gap: 9px; border-bottom: 1px solid var(--line-soft); }.custom-setting > span { display: flex; flex-direction: column; gap: 4px; }.custom-setting strong { font-size: 13px; font-weight: 570; }.custom-setting small { color: var(--muted); font-size: 11px; }.custom-setting textarea { width: 100%; resize: vertical; padding: 9px 10px; border: 1px solid #343d42; border-radius: 8px; outline: 0; background: #0c1012; color: var(--text); font-size: 12px; line-height: 1.5; }.custom-setting textarea:focus { border-color: #627454; }.custom-setting em { align-self: flex-end; color: var(--muted-2); font-size: 9px; font-style: normal; }
+.danger-zone { margin: 14px 20px 2px; padding: 13px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border: 1px solid #593638; border-radius: 9px; background: #211416; }.danger-zone > span { display: flex; flex-direction: column; gap: 4px; }.danger-zone strong { color: #efb8ba; font-size: 12px; }.danger-zone small { color: #a67e80; font-size: 10px; line-height: 1.4; }.danger-zone button { flex: none; height: 31px; padding: 0 9px; display: flex; align-items: center; gap: 5px; border: 1px solid #75464a; border-radius: 7px; background: #341d20; color: #f3b9bc; font-size: 10px; cursor: pointer; }
+
+[data-theme="light"] .sidebar-actions .new-chat, [data-theme="light"] .model-menu > button, [data-theme="light"] .mode-button { background: #e7eee1; color: #41650d; }
+[data-theme="light"] .sidebar, [data-theme="light"] .suggestion-grid button, [data-theme="light"] .settings-dialog, [data-theme="light"] .model-menu { background: var(--panel); box-shadow: 0 16px 48px #2630261c; }
+[data-theme="light"] .composer { background: #fff; box-shadow: 0 8px 28px #26302614; }
+[data-theme="light"] .markdown p { color: #303631; } [data-theme="light"] .markdown strong { color: #111512; }
+[data-theme="light"] .markdown :not(pre) > code, [data-theme="light"] .markdown th { background: #ecefeb; color: #355016; }
+[data-theme="light"] .custom-setting textarea { background: #fff; } [data-theme="light"] .dialog-backdrop { background: #1a211d66; }
 
 @media (max-width: 767px) {
   .app-shell, .app-shell.sidebar-is-collapsed { display: block; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Paperclip, Square } from "lucide-react";
+import { ArrowUp, Brain, Paperclip, Square, Zap } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useRef } from "react";
 
 type Props = {
@@ -10,9 +10,11 @@ type Props = {
   onStop: () => void;
   generating: boolean;
   disabled?: boolean;
+  deepThinking: boolean;
+  onToggleThinking: () => void;
 };
 
-export function ChatComposer({ value, onChange, onSubmit, onStop, generating, disabled = false }: Props) {
+export function ChatComposer({ value, onChange, onSubmit, onStop, generating, disabled = false, deepThinking, onToggleThinking }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const area = textareaRef.current;
@@ -35,6 +37,7 @@ export function ChatComposer({ value, onChange, onSubmit, onStop, generating, di
         <textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={keyDown} placeholder="Message Nemotron…" rows={1} disabled={disabled} aria-label="Message Nemotron" />
         <div className="composer-tools">
           <button type="button" className="attach-button" aria-label="Attach file" title="Attachments coming soon" disabled><Paperclip size={18} /></button>
+          <button type="button" className={`mode-button ${deepThinking ? "deep" : ""}`} onClick={onToggleThinking} disabled={generating} aria-label={`Switch to ${deepThinking ? "fast response" : "deep thinking"}`} title={deepThinking ? "Deep thinking enabled" : "Fast response enabled"}>{deepThinking ? <Brain size={15} /> : <Zap size={15} />}<span>{deepThinking ? "Deep" : "Fast"}</span></button>
           <span className="composer-hint">Shift + Enter for new line</span>
           {generating ? (
             <button type="button" className="send-button stop" onClick={onStop} aria-label="Stop generating" title="Stop generating"><Square size={13} fill="currentColor" /></button>

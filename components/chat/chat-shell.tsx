@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatStreamEvent, ModelMessage } from "@/lib/chat-protocol";
 import { createTitle, DEFAULT_SETTINGS, loadSettings, saveSettings } from "@/lib/chat-storage";
@@ -62,6 +63,14 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     return () => window.clearTimeout(timer);
   }, [conversations, activeId, hydrated, generation]);
   useEffect(() => { if (hydrated) saveSettings(settings); }, [settings, hydrated]);
+  useEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => { root.dataset.theme = settings.theme === "system" ? (media.matches ? "dark" : "light") : settings.theme; };
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, [settings.theme]);
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -130,7 +139,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: modelMessages, config: { temperature: settings.temperature, maxTokens: settings.maxTokens, reasoningBudget: settings.reasoningBudget, enableThinking: settings.showThinking } }),
+        body: JSON.stringify({ messages: modelMessages, config: { temperature: settings.temperature, maxTokens: settings.maxTokens, reasoningBudget: settings.reasoningBudget, enableThinking: settings.showThinking, tone: settings.tone, customInstructions: settings.customInstructions } }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -211,6 +220,13 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     stop(); setConversations([]); newChat();
     void fetch("/api/conversations", { method: "DELETE" }).then((response) => { if (!response.ok) setStorageError("Conversations could not be cleared."); });
   };
+  const deleteAccountData = () => {
+    void fetch("/api/account", { method: "DELETE" }).then(async (response) => {
+      if (!response.ok) { setStorageError("Account data could not be deleted."); return; }
+      localStorage.removeItem("nemotron-chat:settings:v3");
+      await signOut({ callbackUrl: "/" });
+    });
+  };
   const onScroll = () => {
     const element = scrollRef.current; if (!element) return;
     const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -235,9 +251,9 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         </div>
         {showScrollButton && <button className="scroll-bottom" onClick={() => scrollToBottom()} aria-label="Scroll to bottom"><ArrowDown size={18} /></button>}
         {storageError && <div className="storage-error" role="status">{storageError}<button onClick={() => setStorageError(null)} aria-label="Dismiss">×</button></div>}
-        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} />
+        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} deepThinking={settings.showThinking} onToggleThinking={() => setSettings((current) => ({ ...current, showThinking: !current.showThinking }))} />
       </section>
-      <SettingsDialog open={settingsOpen} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} />
+      <SettingsDialog open={settingsOpen} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} onDeleteAccount={deleteAccountData} />
     </main>
   );
 }

@@ -12,16 +12,25 @@ const MAX_TOTAL_LENGTH = 150_000;
 const MAX_BODY_BYTES = 200_000;
 const TOKEN_PRESETS = new Set([2048, 4096, 8192, 16384]);
 
-type SafeConfig = { temperature: number; maxTokens: number; reasoningBudget: number; enableThinking: boolean };
+type ResponseTone = "professional" | "teacher" | "student" | "custom";
+type SafeConfig = { temperature: number; maxTokens: number; reasoningBudget: number; enableThinking: boolean; tone: ResponseTone; customInstructions: string };
+
+const TONE_PROMPTS: Record<Exclude<ResponseTone, "custom">, string> = {
+  professional: "Respond in a polished, precise, professional tone. Be clear and well structured.",
+  teacher: "Respond like an expert teacher. Explain concepts step by step, use helpful examples, and check assumptions.",
+  student: "Respond in a student-friendly style. Use simple language, define unfamiliar terms, and make the answer easy to learn from.",
+};
 
 function validateConfig(value: unknown): SafeConfig | null {
   if (!value || typeof value !== "object") return null;
-  const { temperature, maxTokens, reasoningBudget, enableThinking } = value as Record<string, unknown>;
+  const { temperature, maxTokens, reasoningBudget, enableThinking, tone, customInstructions } = value as Record<string, unknown>;
   if (typeof temperature !== "number" || !Number.isFinite(temperature) || temperature < 0 || temperature > 2) return null;
   if (typeof maxTokens !== "number" || !TOKEN_PRESETS.has(maxTokens)) return null;
   if (typeof reasoningBudget !== "number" || !TOKEN_PRESETS.has(reasoningBudget)) return null;
   if (typeof enableThinking !== "boolean") return null;
-  return { temperature, maxTokens, reasoningBudget, enableThinking };
+  if (tone !== "professional" && tone !== "teacher" && tone !== "student" && tone !== "custom") return null;
+  if (typeof customInstructions !== "string" || customInstructions.length > 500) return null;
+  return { temperature, maxTokens, reasoningBudget, enableThinking, tone, customInstructions };
 }
 
 function validateMessages(value: unknown): ModelMessage[] | null {
@@ -81,6 +90,9 @@ export async function POST(request: Request) {
 
   let upstream: Response;
   try {
+    const styleInstruction = config.tone === "custom"
+      ? config.customInstructions.trim() || TONE_PROMPTS.professional
+      : TONE_PROMPTS[config.tone];
     upstream = await fetch(NVIDIA_MODEL_CONFIG.endpoint, {
       method: "POST",
       headers: {
@@ -90,7 +102,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: NVIDIA_MODEL_CONFIG.model,
-        messages,
+        messages: [{ role: "system", content: styleInstruction }, ...messages],
         temperature: config.temperature,
         top_p: NVIDIA_MODEL_CONFIG.topP,
         max_tokens: config.maxTokens,

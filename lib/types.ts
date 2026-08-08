@@ -24,6 +24,9 @@ export type ChatSettings = {
   temperature: number;
   maxTokens: 2048 | 4096 | 8192 | 16384;
   reasoningBudget: 2048 | 4096 | 8192 | 16384;
+  tone: "professional" | "teacher" | "student" | "custom";
+  customInstructions: string;
+  theme: "dark" | "light" | "system";
 };
 
 export type ChatHistoryGroup = {
