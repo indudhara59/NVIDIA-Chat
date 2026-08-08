@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Folder, FolderPlus, LayoutList, LogOut, MessageSquare, MoreHorizontal, PanelLeftClose, Plus, Search, Settings, Trash2, X } from "lucide-react";
+import { Check, Folder, FolderPlus, GitBranch, LayoutList, LogOut, MessageSquare, MoreHorizontal, PanelLeftClose, Plus, Search, Settings, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import type { ChatHistoryGroup, ChatProject, Conversation } from "@/lib/types";
@@ -105,7 +105,7 @@ export function Sidebar({ collapsed, mobileOpen, conversations, activeId, user, 
               <h2 id={`history-${group.label.replaceAll(" ", "-")}`}>{group.label}</h2>
               {group.chats.map((chat) => (
                 <div className={`history-item ${activeId === chat.id ? "active" : ""}`} key={chat.id}>
-                  {renamingId === chat.id ? <form onSubmit={(event) => { event.preventDefault(); finishRename(chat.id); }}><input autoFocus value={renameValue} onChange={(event) => setRenameValue(event.target.value)} onBlur={() => finishRename(chat.id)} aria-label="Conversation title" /><button type="submit" aria-label="Save title"><Check size={14} /></button></form> : <button className="history-select" onClick={() => onSelect(chat.id)}><MessageSquare size={14} /><span>{chat.title}</span></button>}
+                  {renamingId === chat.id ? <form onSubmit={(event) => { event.preventDefault(); finishRename(chat.id); }}><input autoFocus value={renameValue} onChange={(event) => setRenameValue(event.target.value)} onBlur={() => finishRename(chat.id)} aria-label="Conversation title" /><button type="submit" aria-label="Save title"><Check size={14} /></button></form> : <button className="history-select" onClick={() => onSelect(chat.id)}>{chat.parentConversationId ? <GitBranch size={14} /> : <MessageSquare size={14} />}<span>{chat.title}</span></button>}
                   {renamingId !== chat.id && <button className="history-more" onClick={() => setMenuId(menuId === chat.id ? null : chat.id)} aria-label={`Options for ${chat.title}`}><MoreHorizontal size={15} /></button>}
                   {menuId === chat.id && <div className="history-menu"><button onClick={() => { setRenameValue(chat.title); setRenamingId(chat.id); setMenuId(null); }}>Rename</button><button className="danger" onClick={() => { if (window.confirm(`Delete “${chat.title}”?`)) onDelete(chat.id); setMenuId(null); }}>Delete</button></div>}
                 </div>

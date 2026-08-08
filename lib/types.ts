@@ -16,6 +16,8 @@ export type Conversation = {
   title: string;
   messages: ChatMessage[];
   projectId?: string | null;
+  parentConversationId?: string | null;
+  branchedFromMessageId?: string | null;
   createdAt: number;
   updatedAt: number;
 };

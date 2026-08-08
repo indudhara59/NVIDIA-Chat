@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Bot, Check, Copy, Pencil, RefreshCw, UserRound } from "lucide-react";
+import { AlertCircle, Bot, Check, Copy, GitBranch, GitCompareArrows, Pencil, RefreshCw, UserRound } from "lucide-react";
 import { useState } from "react";
 import type { ChatMessage as ChatMessageType } from "@/lib/types";
 import { MarkdownRenderer } from "./markdown-renderer";
@@ -14,9 +14,11 @@ type Props = {
   actionsEnabled?: boolean;
   onEdit?: () => void;
   onRegenerate?: () => void;
+  onBranch?: () => void;
+  onCompare?: () => void;
 };
 
-export function ChatMessage({ message, reasoningStreaming = false, answerStreaming = false, showThinking = true, actionsEnabled = true, onEdit, onRegenerate }: Props) {
+export function ChatMessage({ message, reasoningStreaming = false, answerStreaming = false, showThinking = true, actionsEnabled = true, onEdit, onRegenerate, onBranch, onCompare }: Props) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -34,7 +36,9 @@ export function ChatMessage({ message, reasoningStreaming = false, answerStreami
         <div className="message-actions">
           {message.content && <button onClick={copy} aria-label={`Copy ${message.role} message`} title="Copy message">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? "Copied" : "Copy"}</button>}
           {message.role === "assistant" && actionsEnabled && <button onClick={onRegenerate} aria-label="Regenerate response" title="Regenerate response"><RefreshCw size={14} />Regenerate</button>}
+          {message.role === "assistant" && actionsEnabled && <button onClick={onCompare} aria-label="Compare response mode" title="Compare with the other response mode"><GitCompareArrows size={14} />Compare</button>}
           {message.role === "user" && actionsEnabled && <button onClick={onEdit} aria-label="Edit prompt" title="Edit prompt"><Pencil size={14} />Edit</button>}
+          {actionsEnabled && <button onClick={onBranch} aria-label="Branch conversation here" title="Branch conversation here"><GitBranch size={14} />Branch</button>}
         </div>
       </div>
     </article>

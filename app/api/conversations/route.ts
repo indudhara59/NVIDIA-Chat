@@ -30,6 +30,8 @@ function validConversation(value: unknown): value is Conversation {
   return typeof chat.id === "string" && chat.id.length > 0 && chat.id.length <= 100
     && typeof chat.title === "string" && chat.title.trim().length > 0 && chat.title.length <= MAX_TITLE_LENGTH
     && (chat.projectId === undefined || chat.projectId === null || (typeof chat.projectId === "string" && chat.projectId.length <= 100))
+    && (chat.parentConversationId === undefined || chat.parentConversationId === null || (typeof chat.parentConversationId === "string" && chat.parentConversationId.length <= 100))
+    && (chat.branchedFromMessageId === undefined || chat.branchedFromMessageId === null || (typeof chat.branchedFromMessageId === "string" && chat.branchedFromMessageId.length <= 100))
     && Array.isArray(chat.messages) && chat.messages.length <= MAX_MESSAGES && chat.messages.every(validMessage)
     && typeof chat.createdAt === "number" && Number.isFinite(chat.createdAt)
     && typeof chat.updatedAt === "number" && Number.isFinite(chat.updatedAt);

@@ -136,7 +136,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     requestAnimationFrame(() => scrollToBottom("auto"));
   };
 
-  const streamConversation = async (chatId: string, nextMessages: ChatMessageType[]) => {
+  const streamConversation = async (chatId: string, nextMessages: ChatMessageType[], responseSettings: ChatSettings = settings) => {
     const assistantId = crypto.randomUUID();
     const withPlaceholder = [...nextMessages, { id: assistantId, role: "assistant", content: "", createdAt: currentTime() + 1 } satisfies ChatMessageType];
     let streamedMessages = withPlaceholder;
@@ -159,7 +159,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: modelMessages, config: { temperature: settings.temperature, maxTokens: settings.maxTokens, reasoningBudget: settings.reasoningBudget, enableThinking: settings.showThinking, tone: settings.tone, customInstructions: settings.customInstructions, projectInstructions: projects.find((project) => project.id === activeProjectId)?.instructions || "" } }),
+        body: JSON.stringify({ messages: modelMessages, config: { temperature: responseSettings.temperature, maxTokens: responseSettings.maxTokens, reasoningBudget: responseSettings.reasoningBudget, enableThinking: responseSettings.showThinking, tone: responseSettings.tone, customInstructions: responseSettings.customInstructions, projectInstructions: projects.find((project) => project.id === activeProjectId)?.instructions || "" } }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -227,6 +227,35 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     setInput(messages[index].content);
     commitMessages(activeId, (current) => current.slice(0, index));
   };
+  const branchConversation = (messageId: string, compare = false) => {
+    if (generation !== "idle" || !activeId) return;
+    const index = messages.findIndex((message) => message.id === messageId);
+    if (index < 0) return;
+    const source = conversations.find((chat) => chat.id === activeId);
+    if (!source) return;
+    const branchId = crypto.randomUUID();
+    const now = currentTime();
+    const branchMessages = compare ? messages.slice(0, index) : messages.slice(0, index + 1);
+    if (compare && branchMessages.at(-1)?.role !== "user") return;
+    const modeName = settings.showThinking ? "Fast" : "Deep";
+    const branch: Conversation = {
+      id: branchId,
+      title: `${compare ? `${modeName} comparison` : "Branch"}: ${source.title}`.slice(0, 60),
+      messages: branchMessages,
+      projectId: source.projectId || null,
+      parentConversationId: source.id,
+      branchedFromMessageId: messageId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setConversations((current) => [branch, ...current]);
+    activeIdRef.current = branchId; setActiveId(branchId); setActiveProjectId(source.projectId || null); setMessages(branchMessages); nearBottomRef.current = true;
+    if (compare) {
+      const comparisonSettings = { ...settings, showThinking: !settings.showThinking };
+      setSettings(comparisonSettings);
+      void streamConversation(branchId, branchMessages, comparisonSettings);
+    }
+  };
   const updateSettings = (value: ChatSettings) => setSettings(value);
   const renameChat = (id: string, title: string) => {
     setConversations((current) => current.map((chat) => chat.id === id ? { ...chat, title, updatedAt: currentTime() } : chat).sort((a, b) => b.updatedAt - a.updatedAt));
@@ -291,7 +320,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       <section className="main-panel">
         <Header sidebarCollapsed={sidebarCollapsed} onOpenSidebar={() => { if (window.innerWidth < 768) setMobileOpen(true); else setSidebarCollapsed(false); }} />
         <div className="conversation-scroll" ref={scrollRef} onScroll={onScroll} onWheelCapture={(event) => { if (event.deltaY < 0) pauseAutoScroll(); }} onTouchStart={(event) => { touchYRef.current = event.touches[0]?.clientY ?? null; }} onTouchMove={(event) => { const y = event.touches[0]?.clientY; if (y !== undefined && touchYRef.current !== null && y > touchYRef.current + 3) pauseAutoScroll(); touchYRef.current = y ?? null; }}>
-          {messages.length === 0 ? <EmptyState onSelect={setInput} /> : <div className="message-list">{messages.map((message) => <ChatMessage key={message.id} message={message} reasoningStreaming={message.id === lastAssistantId && generation === "thinking"} answerStreaming={message.id === lastAssistantId && generation === "answering"} showThinking={settings.showThinking} actionsEnabled={generation === "idle"} onEdit={() => editMessage(message.id)} onRegenerate={() => regenerate(message.id)} />)}</div>}
+          {messages.length === 0 ? <EmptyState onSelect={setInput} /> : <div className="message-list">{messages.map((message) => <ChatMessage key={message.id} message={message} reasoningStreaming={message.id === lastAssistantId && generation === "thinking"} answerStreaming={message.id === lastAssistantId && generation === "answering"} showThinking={settings.showThinking} actionsEnabled={generation === "idle"} onEdit={() => editMessage(message.id)} onRegenerate={() => regenerate(message.id)} onBranch={() => branchConversation(message.id)} onCompare={() => branchConversation(message.id, true)} />)}</div>}
         </div>
         {showScrollButton && <button className="scroll-bottom" onClick={() => scrollToBottom()} aria-label="Scroll to bottom"><ArrowDown size={18} /></button>}
         {storageError && <div className="storage-error" role="status">{storageError}<button onClick={() => setStorageError(null)} aria-label="Dismiss">×</button></div>}
