@@ -130,7 +130,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: modelMessages, config: { temperature: settings.temperature, maxTokens: settings.maxTokens, reasoningBudget: settings.reasoningBudget } }),
+        body: JSON.stringify({ messages: modelMessages, config: { temperature: settings.temperature, maxTokens: settings.maxTokens, reasoningBudget: settings.reasoningBudget, enableThinking: settings.showThinking } }),
         signal: controller.signal,
       });
       if (!response.ok) {

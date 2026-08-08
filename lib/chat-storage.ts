@@ -1,12 +1,12 @@
 import type { ChatSettings } from "@/lib/types";
 
-const SETTINGS_KEY = "nemotron-chat:settings:v1";
+const SETTINGS_KEY = "nemotron-chat:settings:v2";
 
 export const DEFAULT_SETTINGS: ChatSettings = {
-  showThinking: true,
+  showThinking: false,
   temperature: 1,
-  maxTokens: 16_384,
-  reasoningBudget: 16_384,
+  maxTokens: 4096,
+  reasoningBudget: 2048,
 };
 
 export function createTitle(prompt: string): string {
@@ -20,10 +20,10 @@ export function loadSettings(): ChatSettings {
     if (!value) return DEFAULT_SETTINGS;
     const tokenPresets = [2048, 4096, 8192, 16384];
     return {
-      showThinking: typeof value.showThinking === "boolean" ? value.showThinking : true,
+      showThinking: typeof value.showThinking === "boolean" ? value.showThinking : false,
       temperature: typeof value.temperature === "number" && value.temperature >= 0 && value.temperature <= 2 ? value.temperature : 1,
-      maxTokens: tokenPresets.includes(value.maxTokens || 0) ? value.maxTokens as ChatSettings["maxTokens"] : 16_384,
-      reasoningBudget: tokenPresets.includes(value.reasoningBudget || 0) ? value.reasoningBudget as ChatSettings["reasoningBudget"] : 16_384,
+      maxTokens: tokenPresets.includes(value.maxTokens || 0) ? value.maxTokens as ChatSettings["maxTokens"] : 4096,
+      reasoningBudget: tokenPresets.includes(value.reasoningBudget || 0) ? value.reasoningBudget as ChatSettings["reasoningBudget"] : 2048,
     };
   } catch {
     return DEFAULT_SETTINGS;

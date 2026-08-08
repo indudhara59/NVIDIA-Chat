@@ -12,15 +12,16 @@ const MAX_TOTAL_LENGTH = 150_000;
 const MAX_BODY_BYTES = 200_000;
 const TOKEN_PRESETS = new Set([2048, 4096, 8192, 16384]);
 
-type SafeConfig = { temperature: number; maxTokens: number; reasoningBudget: number };
+type SafeConfig = { temperature: number; maxTokens: number; reasoningBudget: number; enableThinking: boolean };
 
 function validateConfig(value: unknown): SafeConfig | null {
   if (!value || typeof value !== "object") return null;
-  const { temperature, maxTokens, reasoningBudget } = value as Record<string, unknown>;
+  const { temperature, maxTokens, reasoningBudget, enableThinking } = value as Record<string, unknown>;
   if (typeof temperature !== "number" || !Number.isFinite(temperature) || temperature < 0 || temperature > 2) return null;
   if (typeof maxTokens !== "number" || !TOKEN_PRESETS.has(maxTokens)) return null;
   if (typeof reasoningBudget !== "number" || !TOKEN_PRESETS.has(reasoningBudget)) return null;
-  return { temperature, maxTokens, reasoningBudget };
+  if (typeof enableThinking !== "boolean") return null;
+  return { temperature, maxTokens, reasoningBudget, enableThinking };
 }
 
 function validateMessages(value: unknown): ModelMessage[] | null {
@@ -94,8 +95,8 @@ export async function POST(request: Request) {
         top_p: NVIDIA_MODEL_CONFIG.topP,
         max_tokens: config.maxTokens,
         stream: true,
-        chat_template_kwargs: { enable_thinking: NVIDIA_MODEL_CONFIG.enableThinking },
-        reasoning_budget: config.reasoningBudget,
+        chat_template_kwargs: { enable_thinking: config.enableThinking },
+        ...(config.enableThinking ? { reasoning_budget: config.reasoningBudget } : {}),
       }),
       signal: request.signal,
       cache: "no-store",
