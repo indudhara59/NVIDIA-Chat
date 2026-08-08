@@ -4,7 +4,7 @@ import { ArrowDown } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatStreamEvent, ModelMessage } from "@/lib/chat-protocol";
-import { createTitle, DEFAULT_SETTINGS, loadSettings, saveSettings } from "@/lib/chat-storage";
+import { clearConversationCache, createTitle, DEFAULT_SETTINGS, loadConversationCache, loadSettings, saveConversationCache, saveSettings } from "@/lib/chat-storage";
 import type { ChatMessage as ChatMessageType, ChatSettings, Conversation, GenerationState } from "@/lib/types";
 import { ChatComposer } from "./chat-composer";
 import { ChatMessage } from "./chat-message";
@@ -37,20 +37,29 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
 
   useEffect(() => {
     let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      const cached = loadConversationCache(user.email);
+      if (cached.length) setConversations(cached);
+      setSettings(loadSettings());
+      setHydrated(true);
+    });
     void fetch("/api/conversations", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Could not load your conversations.");
         return response.json() as Promise<{ conversations: Conversation[] }>;
       })
-      .then((data) => { if (active) setConversations(data.conversations); })
-      .catch(() => { if (active) setStorageError("Could not load your conversations. Please refresh to retry."); })
-      .finally(() => {
+      .then((data) => {
         if (!active) return;
-        setSettings(loadSettings());
-        setHydrated(true);
-      });
+        setConversations(data.conversations);
+        saveConversationCache(user.email, data.conversations);
+      })
+      .catch(() => { if (active) setStorageError("Could not load your conversations. Please refresh to retry."); })
     return () => { active = false; };
-  }, []);
+  }, [user.email]);
+  useEffect(() => {
+    if (hydrated) saveConversationCache(user.email, conversations);
+  }, [conversations, hydrated, user.email]);
   useEffect(() => {
     if (!hydrated || !activeId || generation !== "idle") return;
     const conversation = conversations.find((chat) => chat.id === activeId);
@@ -229,6 +238,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     void fetch("/api/account", { method: "DELETE" }).then(async (response) => {
       if (!response.ok) { setStorageError("Account data could not be deleted."); return; }
       localStorage.removeItem("nemotron-chat:settings:v3");
+      clearConversationCache(user.email);
       await signOut({ callbackUrl: "/" });
     });
   };
