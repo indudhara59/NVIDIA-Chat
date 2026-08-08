@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, MessageSquare, MoreHorizontal, PanelLeftClose, Plus, Search, Settings, Trash2, X } from "lucide-react";
+import { Check, LogOut, MessageSquare, MoreHorizontal, PanelLeftClose, Plus, Search, Settings, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { signOut } from "next-auth/react";
 import type { ChatHistoryGroup, Conversation } from "@/lib/types";
 import { BrandMark } from "@/components/ui/brand-mark";
 
@@ -10,6 +11,7 @@ type SidebarProps = {
   mobileOpen: boolean;
   conversations: Conversation[];
   activeId: string | null;
+  user: { name: string; email: string; image: string | null };
   onCloseMobile: () => void;
   onCollapse: () => void;
   onNewChat: () => void;
@@ -41,7 +43,7 @@ function groupChats(chats: Conversation[]): ChatHistoryGroup[] {
   })).filter((group) => group.chats.length > 0);
 }
 
-export function Sidebar({ collapsed, mobileOpen, conversations, activeId, onCloseMobile, onCollapse, onNewChat, onSelect, onRename, onDelete, onClear, onOpenSettings }: SidebarProps) {
+export function Sidebar({ collapsed, mobileOpen, conversations, activeId, user, onCloseMobile, onCollapse, onNewChat, onSelect, onRename, onDelete, onClear, onOpenSettings }: SidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [menuId, setMenuId] = useState<string | null>(null);
@@ -104,6 +106,7 @@ export function Sidebar({ collapsed, mobileOpen, conversations, activeId, onClos
         <div className="sidebar-footer">
           {conversations.length > 0 && <button className="clear-chats" onClick={() => { if (window.confirm("Delete all conversations? This cannot be undone.")) onClear(); }}><Trash2 size={17} /><span><strong>Clear chats</strong></span></button>}
           <button onClick={onOpenSettings}><Settings size={18} /><span><strong>Settings</strong><small>Model and appearance</small></span></button>
+          <div className="user-profile"><span className="user-initial" aria-hidden="true">{user.name.charAt(0).toUpperCase()}</span><span><strong>{user.name}</strong><small>{user.email}</small></span><button onClick={() => void signOut({ callbackUrl: "/" })} aria-label="Sign out" title="Sign out"><LogOut size={16} /></button></div>
         </div>
       </aside>
     </>

@@ -1,6 +1,5 @@
-import type { ChatSettings, Conversation } from "@/lib/types";
+import type { ChatSettings } from "@/lib/types";
 
-const CHATS_KEY = "nemotron-chat:conversations:v1";
 const SETTINGS_KEY = "nemotron-chat:settings:v1";
 
 export const DEFAULT_SETTINGS: ChatSettings = {
@@ -13,22 +12,6 @@ export const DEFAULT_SETTINGS: ChatSettings = {
 export function createTitle(prompt: string): string {
   const title = prompt.replace(/\s+/g, " ").trim().replace(/[.!?]+$/, "");
   return title.length > 42 ? `${title.slice(0, 39).trimEnd()}…` : title || "New chat";
-}
-
-export function loadConversations(): Conversation[] {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(CHATS_KEY) || "[]");
-    if (!Array.isArray(value)) return [];
-    return value
-      .filter((chat): chat is Conversation => Boolean(chat && typeof chat === "object" && typeof chat.id === "string" && typeof chat.title === "string" && Array.isArray(chat.messages) && typeof chat.createdAt === "number" && typeof chat.updatedAt === "number"))
-      .sort((a, b) => b.updatedAt - a.updatedAt);
-  } catch {
-    return [];
-  }
-}
-
-export function saveConversations(conversations: Conversation[]): void {
-  localStorage.setItem(CHATS_KEY, JSON.stringify(conversations));
 }
 
 export function loadSettings(): ChatSettings {

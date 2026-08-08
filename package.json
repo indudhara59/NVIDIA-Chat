@@ -12,7 +12,9 @@
   "dependencies": {
     "@tailwindcss/postcss": "latest",
     "lucide-react": "latest",
+    "mongodb": "^7.5.0",
     "next": "latest",
+    "next-auth": "^5.0.0-beta.32",
     "react": "latest",
     "react-dom": "latest",
     "react-markdown": "latest",

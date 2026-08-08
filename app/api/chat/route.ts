@@ -1,5 +1,6 @@
 import { NVIDIA_MODEL_CONFIG } from "@/lib/model-config";
 import type { ChatStreamEvent, ModelMessage } from "@/lib/chat-protocol";
+import { auth } from "@/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,8 @@ function encode(event: ChatStreamEvent): Uint8Array {
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.email) return Response.json({ error: "Please sign in to continue." }, { status: 401 });
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > MAX_BODY_BYTES) return Response.json({ error: "Request payload is too large." }, { status: 413 });
   let body: unknown;

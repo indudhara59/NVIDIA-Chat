@@ -74,6 +74,10 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .sidebar-footer span { display: flex; flex-direction: column; gap: 2px; }
 .sidebar-footer strong { font-size: 13px; font-weight: 550; }
 .sidebar-footer small { font-size: 11px; color: var(--muted-2); }
+.user-profile { margin-top: 6px; padding: 9px 7px 1px; display: grid; grid-template-columns: 30px minmax(0, 1fr) 28px; align-items: center; gap: 9px; border-top: 1px solid var(--line-soft); }
+.user-initial { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 50%; background: #27301e; color: #b7dd78; font-size: 12px; font-weight: 650; }
+.user-profile > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 2px; }.user-profile strong, .user-profile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.user-profile strong { font-size: 11px; font-weight: 570; }.user-profile small { font-size: 9px; color: var(--muted-2); }
+.sidebar-footer .user-profile > button { width: 28px; height: 28px; padding: 0; display: grid; place-items: center; color: var(--muted); }
 .sidebar-scrim { display: none; }
 
 .app-header { height: 60px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; z-index: 10; border-bottom: 1px solid transparent; }
@@ -167,6 +171,14 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .disclaimer { margin: 7px 0 0; color: #596269; font-size: 10px; text-align: center; }
 .scroll-bottom { position: absolute; bottom: 105px; left: 50%; z-index: 12; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #394147; border-radius: 50%; background: #171c20; color: #cbd1d4; box-shadow: 0 5px 20px #0008; cursor: pointer; transform: translateX(-50%); }
 .scroll-bottom:hover { background: #20262a; }
+.storage-error { position: absolute; left: 50%; bottom: 105px; z-index: 13; max-width: min(440px, calc(100% - 28px)); padding: 9px 10px 9px 13px; display: flex; align-items: center; gap: 10px; transform: translateX(-50%); border: 1px solid #644044; border-radius: 9px; background: #29191b; color: #e8babb; box-shadow: 0 8px 30px #0009; font-size: 11px; }.storage-error button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 17px; }
+
+.auth-page { min-height: 100dvh; padding: 24px; display: grid; place-items: center; background: radial-gradient(circle at 50% 30%, #17200f 0, var(--bg) 42%); }
+.auth-card { width: min(100%, 410px); padding: 38px 34px 30px; border: 1px solid #28302b; border-radius: 18px; background: #0e1214e8; box-shadow: 0 24px 80px #0009; text-align: center; }
+.auth-mark { width: 45px; height: 45px; margin: 0 auto 20px; border-radius: 13px; }.auth-mark span:first-child, .auth-mark span:last-child { width: 21px; }
+.auth-card h1 { margin: 0; font-size: 24px; letter-spacing: -.035em; }.auth-card > p { margin: 10px auto 25px; max-width: 320px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.auth-card form button { width: 100%; height: 45px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid #3b4348; border-radius: 10px; background: #f3f5f6; color: #171a1c; font-weight: 600; cursor: pointer; transition: background 150ms, transform 150ms; }.auth-card form button:hover { background: white; transform: translateY(-1px); }
+.google-icon { width: 21px; height: 21px; display: grid; place-items: center; border-radius: 50%; color: #4285f4; font: 700 17px Arial, sans-serif; }.auth-card > small { display: block; margin-top: 22px; color: var(--muted-2); font-size: 10px; }
 
 .dialog-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 18px; background: #000a; backdrop-filter: blur(3px); }
 .settings-dialog { width: min(100%, 500px); max-height: min(720px, 90dvh); overflow-y: auto; border: 1px solid #2d353a; border-radius: 15px; background: #111519; box-shadow: 0 24px 80px #000c; }
