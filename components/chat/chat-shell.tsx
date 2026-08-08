@@ -49,7 +49,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     return () => { active = false; };
   }, []);
   useEffect(() => {
-    if (!hydrated || !activeId) return;
+    if (!hydrated || !activeId || generation !== "idle") return;
     const conversation = conversations.find((chat) => chat.id === activeId);
     if (!conversation) return;
     const timer = window.setTimeout(() => {
@@ -58,7 +58,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         .catch(() => setStorageError("Changes could not be saved. Check your connection."));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [conversations, activeId, hydrated]);
+  }, [conversations, activeId, hydrated, generation]);
   useEffect(() => { if (hydrated) saveSettings(settings); }, [settings, hydrated]);
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -107,6 +107,11 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   const streamConversation = async (chatId: string, nextMessages: ChatMessageType[]) => {
     const assistantId = crypto.randomUUID();
     const withPlaceholder = [...nextMessages, { id: assistantId, role: "assistant", content: "", createdAt: currentTime() + 1 } satisfies ChatMessageType];
+    let streamedMessages = withPlaceholder;
+    const updateStream = (updater: (current: ChatMessageType[]) => ChatMessageType[]) => {
+      streamedMessages = updater(streamedMessages);
+      if (activeIdRef.current === chatId) setMessages(streamedMessages);
+    };
     commitMessages(chatId, () => withPlaceholder);
     setInput(""); setGeneration("thinking"); nearBottomRef.current = true;
     const controller = new AbortController();
@@ -138,8 +143,8 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
           if (!line.trim()) continue;
           let event: ChatStreamEvent;
           try { event = JSON.parse(line) as ChatStreamEvent; } catch { throw new Error("Connection lost while generating the response."); }
-          if (event.type === "reasoning") commitMessages(chatId, (current) => current.map((message) => message.id === assistantId ? { ...message, reasoning: (message.reasoning || "") + event.text } : message));
-          else if (event.type === "content") { setGeneration("answering"); commitMessages(chatId, (current) => current.map((message) => message.id === assistantId ? { ...message, content: message.content + event.text } : message)); }
+          if (event.type === "reasoning") updateStream((current) => current.map((message) => message.id === assistantId ? { ...message, reasoning: (message.reasoning || "") + event.text } : message));
+          else if (event.type === "content") { setGeneration("answering"); updateStream((current) => current.map((message) => message.id === assistantId ? { ...message, content: message.content + event.text } : message)); }
           else if (event.type === "error") throw new Error(event.message);
           else if (event.type === "done") { done = true; break; }
         }
@@ -147,11 +152,11 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         const message = error instanceof Error ? error.message : "Connection lost while generating the response.";
-        commitMessages(chatId, (current) => current.map((item) => item.id === assistantId ? { ...item, error: message } : item));
+        updateStream((current) => current.map((item) => item.id === assistantId ? { ...item, error: message } : item));
       }
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-      setGeneration("idle");
+      setConversations((current) => current.map((chat) => chat.id === chatId ? { ...chat, messages: streamedMessages, updatedAt: currentTime() } : chat).sort((a, b) => b.updatedAt - a.updatedAt));
+      if (abortRef.current === controller) { abortRef.current = null; setGeneration("idle"); }
     }
   };
 
