@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Folder, FolderPlus, GitBranch, LayoutList, LogOut, MessageSquare, MoreHorizontal, PanelLeftClose, Plus, Search, Settings, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import type { ChatHistoryGroup, ChatProject, Conversation } from "@/lib/types";
 import { BrandMark } from "@/components/ui/brand-mark";
@@ -57,16 +57,6 @@ export function Sidebar({ collapsed, mobileOpen, conversations, activeId, user, 
   const [projectMenuId, setProjectMenuId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const shortcut = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault(); setSearchOpen(true); window.setTimeout(() => searchRef.current?.focus(), 0);
-      }
-    };
-    window.addEventListener("keydown", shortcut);
-    return () => window.removeEventListener("keydown", shortcut);
-  }, []);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();

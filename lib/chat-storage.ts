@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   tone: "professional",
   customInstructions: "",
   theme: "dark",
+  mode: "chat",
 };
 
 export function createTitle(prompt: string): string {
@@ -25,6 +26,7 @@ export function loadSettings(): ChatSettings {
     const tokenPresets = [2048, 4096, 8192, 16384];
     const tones = ["professional", "teacher", "student", "custom"];
     const themes = ["dark", "light", "system"];
+    const modes = ["chat", "create", "analyze"];
     return {
       showThinking: typeof value.showThinking === "boolean" ? value.showThinking : false,
       temperature: typeof value.temperature === "number" && value.temperature >= 0 && value.temperature <= 2 ? value.temperature : 1,
@@ -33,6 +35,7 @@ export function loadSettings(): ChatSettings {
       tone: tones.includes(value.tone || "") ? value.tone as ChatSettings["tone"] : "professional",
       customInstructions: typeof value.customInstructions === "string" ? value.customInstructions.slice(0, 500) : "",
       theme: themes.includes(value.theme || "") ? value.theme as ChatSettings["theme"] : "dark",
+      mode: modes.includes(value.mode || "") ? value.mode as ChatSettings["mode"] : "chat",
     };
   } catch {
     return DEFAULT_SETTINGS;

@@ -13,6 +13,7 @@ import { Header } from "./header";
 import { SettingsDialog } from "./settings-dialog";
 import { Sidebar } from "./sidebar";
 import { ArtifactPanel, type Artifact } from "./artifact-panel";
+import { CommandPalette } from "./command-palette";
 
 const currentTime = () => Date.now();
 
@@ -36,6 +37,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   const [uploading, setUploading] = useState(false);
   const [memory, setMemory] = useState("");
   const [memoryLoaded, setMemoryLoaded] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -126,7 +128,11 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   }, [messages, generation, scrollToBottom]);
 
   useEffect(() => {
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape" && abortRef.current) abortRef.current.abort(); };
+    const escape = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setCommandOpen(true); return; }
+      if (event.key === "Escape" && abortRef.current) abortRef.current.abort();
+      if (event.key === "Escape") setCommandOpen(false);
+    };
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
   }, []);
@@ -180,7 +186,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: modelMessages, config: { temperature: responseSettings.temperature, maxTokens: responseSettings.maxTokens, reasoningBudget: responseSettings.reasoningBudget, enableThinking: responseSettings.showThinking, tone: responseSettings.tone, customInstructions: responseSettings.customInstructions, projectInstructions: projects.find((project) => project.id === activeProjectId)?.instructions || "", personalMemory: memory } }),
+        body: JSON.stringify({ messages: modelMessages, config: { temperature: responseSettings.temperature, maxTokens: responseSettings.maxTokens, reasoningBudget: responseSettings.reasoningBudget, enableThinking: responseSettings.showThinking, tone: responseSettings.tone, customInstructions: responseSettings.customInstructions, projectInstructions: projects.find((project) => project.id === activeProjectId)?.instructions || "", personalMemory: memory, mode: responseSettings.mode } }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -364,10 +370,11 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         </div>
         {showScrollButton && <button className="scroll-bottom" onClick={() => scrollToBottom()} aria-label="Scroll to bottom"><ArrowDown size={18} /></button>}
         {storageError && <div className="storage-error" role="status">{storageError}<button onClick={() => setStorageError(null)} aria-label="Dismiss">×</button></div>}
-        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} deepThinking={settings.showThinking} onToggleThinking={() => setSettings((current) => ({ ...current, showThinking: !current.showThinking }))} attachments={pendingAttachments} uploading={uploading} onFiles={(files) => void uploadFiles(files)} onRemoveAttachment={removePendingAttachment} />
+        <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} deepThinking={settings.showThinking} onToggleThinking={() => setSettings((current) => ({ ...current, showThinking: !current.showThinking }))} attachments={pendingAttachments} uploading={uploading} onFiles={(files) => void uploadFiles(files)} onRemoveAttachment={removePendingAttachment} mode={settings.mode} onModeChange={(mode) => setSettings((current) => ({ ...current, mode }))} />
       </section>
       <SettingsDialog open={settingsOpen} settings={settings} memory={memory} onChange={updateSettings} onMemoryChange={setMemory} onClose={() => setSettingsOpen(false)} onDeleteAccount={deleteAccountData} />
       {artifact && <ArtifactPanel artifact={artifact} onChange={(code) => setArtifact((current) => current ? { ...current, code } : null)} onClose={() => setArtifact(null)} />}
+      <CommandPalette open={commandOpen} conversations={conversations} onClose={() => setCommandOpen(false)} onNewChat={newChat} onSelectChat={selectChat} onSettings={() => setSettingsOpen(true)} onFast={() => setSettings((current) => ({ ...current, showThinking: false }))} onDeep={() => setSettings((current) => ({ ...current, showThinking: true }))} onTheme={(theme) => setSettings((current) => ({ ...current, theme }))} onMode={(mode) => setSettings((current) => ({ ...current, mode }))} />
     </main>
   );
 }

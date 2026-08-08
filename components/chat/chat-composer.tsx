@@ -17,9 +17,11 @@ type Props = {
   uploading: boolean;
   onFiles: (files: FileList) => void;
   onRemoveAttachment: (id: string) => void;
+  mode: "chat" | "create" | "analyze";
+  onModeChange: (mode: "chat" | "create" | "analyze") => void;
 };
 
-export function ChatComposer({ value, onChange, onSubmit, onStop, generating, disabled = false, deepThinking, onToggleThinking, attachments, uploading, onFiles, onRemoveAttachment }: Props) {
+export function ChatComposer({ value, onChange, onSubmit, onStop, generating, disabled = false, deepThinking, onToggleThinking, attachments, uploading, onFiles, onRemoveAttachment, mode, onModeChange }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<{ start: () => void; stop: () => void } | null>(null);
@@ -67,6 +69,7 @@ export function ChatComposer({ value, onChange, onSubmit, onStop, generating, di
           <input ref={fileRef} className="file-input" type="file" multiple accept=".pdf,.txt,.md,.csv,.json,.png,.jpg,.jpeg,.webp" onChange={(event) => { if (event.target.files?.length) onFiles(event.target.files); event.target.value = ""; }} />
           <button type="button" className="attach-button" aria-label="Attach file" title="Attach file" disabled={disabled || uploading} onClick={() => fileRef.current?.click()}>{uploading ? <LoaderCircle className="spin" size={17} /> : <Paperclip size={18} />}</button>
           <button type="button" className={`mode-button ${deepThinking ? "deep" : ""}`} onClick={onToggleThinking} disabled={generating} aria-label={`Switch to ${deepThinking ? "fast response" : "deep thinking"}`} title={deepThinking ? "Deep thinking enabled" : "Fast response enabled"}>{deepThinking ? <Brain size={15} /> : <Zap size={15} />}<span>{deepThinking ? "Deep" : "Fast"}</span></button>
+          <select className="task-mode" value={mode} onChange={(event) => onModeChange(event.target.value as "chat" | "create" | "analyze")} disabled={generating} aria-label="Task mode"><option value="chat">Chat</option><option value="create">Create</option><option value="analyze">Analyze</option></select>
           <button type="button" className={`voice-button ${listening ? "listening" : ""}`} onClick={toggleDictation} disabled={disabled} aria-label={listening ? "Stop dictation" : "Start dictation"} title={listening ? "Stop dictation" : "Dictate message"}>{listening ? <MicOff size={15} /> : <Mic size={15} />}</button>
           <span className="composer-hint">Shift + Enter for new line</span>
           {generating ? (

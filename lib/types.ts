@@ -48,6 +48,7 @@ export type ChatSettings = {
   tone: "professional" | "teacher" | "student" | "custom";
   customInstructions: string;
   theme: "dark" | "light" | "system";
+  mode: "chat" | "create" | "analyze";
 };
 
 export type ChatHistoryGroup = {
