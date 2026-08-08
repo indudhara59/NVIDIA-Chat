@@ -209,6 +209,17 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 [data-theme="light"] .markdown p { color: #303631; } [data-theme="light"] .markdown strong { color: #111512; }
 [data-theme="light"] .markdown :not(pre) > code, [data-theme="light"] .markdown th { background: #ecefeb; color: #355016; }
 [data-theme="light"] .custom-setting textarea { background: #fff; } [data-theme="light"] .dialog-backdrop { background: #1a211d66; }
+[data-theme="light"] .setting-field select { border-color: #bdc5bd; background: #fff; color: #192019; box-shadow: 0 1px 2px #26302612; }
+[data-theme="light"] .setting-field select:focus { border-color: #68923a; outline: 2px solid #76b90035; }
+[data-theme="light"] .chat-search, [data-theme="light"] .history-item form input { border-color: #c5ccc4; background: #fff; color: #171b18; }
+[data-theme="light"] .history-menu { border-color: #cbd1ca; background: #fff; box-shadow: 0 10px 30px #26302626; }
+[data-theme="light"] .share-button, [data-theme="light"] .scroll-bottom { border-color: #c8cec7; background: #fff; color: #4d574f; }
+[data-theme="light"] .message-avatar { border-color: #ccd2cb; background: #e9ece8; color: #58625a; }
+[data-theme="light"] .message.assistant .message-avatar { border-color: #bdd39e; background: #ebf3df; color: #4c7c09; }
+[data-theme="light"] .thinking-panel { border-left-color: #9ca69d; }
+[data-theme="light"] .thinking-panel.is-streaming { border-left-color: #68a400; }
+[data-theme="light"] .code-block { border-color: #303a31; }
+[data-theme="light"] .storage-error { box-shadow: 0 8px 28px #54272b24; }
 
 @media (max-width: 767px) {
   .app-shell, .app-shell.sidebar-is-collapsed { display: block; }

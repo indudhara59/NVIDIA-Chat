@@ -66,7 +66,12 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   useEffect(() => {
     const root = document.documentElement;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () => { root.dataset.theme = settings.theme === "system" ? (media.matches ? "dark" : "light") : settings.theme; };
+    const apply = () => {
+      const resolved = settings.theme === "system" ? (media.matches ? "dark" : "light") : settings.theme;
+      root.dataset.theme = resolved;
+      root.classList.toggle("dark", resolved === "dark");
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved === "dark" ? "#080a0c" : "#f7f8f6");
+    };
     apply();
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
