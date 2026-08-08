@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, PanelsTopLeft } from "lucide-react";
 import { useState } from "react";
 
 export function CodeBlock({ language, code }: { language: string; code: string }) {
@@ -10,9 +10,10 @@ export function CodeBlock({ language, code }: { language: string; code: string }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   };
+  const openArtifact = () => window.dispatchEvent(new CustomEvent("nemotron:open-artifact", { detail: { language, code } }));
   return (
     <div className="code-block">
-      <div className="code-header"><span>{language || "text"}</span><button onClick={copy} aria-label="Copy code">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? "Copied" : "Copy"}</button></div>
+      <div className="code-header"><span>{language || "text"}</span><div><button onClick={openArtifact} aria-label="Open in artifact canvas"><PanelsTopLeft size={14} />Open</button><button onClick={copy} aria-label="Copy code">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? "Copied" : "Copy"}</button></div></div>
       <pre><code>{code}</code></pre>
     </div>
   );

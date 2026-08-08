@@ -12,6 +12,7 @@ import { EmptyState } from "./empty-state";
 import { Header } from "./header";
 import { SettingsDialog } from "./settings-dialog";
 import { Sidebar } from "./sidebar";
+import { ArtifactPanel, type Artifact } from "./artifact-panel";
 
 const currentTime = () => Date.now();
 
@@ -30,6 +31,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   const [generation, setGeneration] = useState<GenerationState>("idle");
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [artifact, setArtifact] = useState<Artifact | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,11 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     return () => media.removeEventListener("change", apply);
   }, [settings.theme]);
   useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => {
+    const open = (event: Event) => setArtifact((event as CustomEvent<Artifact>).detail);
+    window.addEventListener("nemotron:open-artifact", open);
+    return () => window.removeEventListener("nemotron:open-artifact", open);
+  }, []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const container = scrollRef.current;
@@ -327,6 +334,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         <ChatComposer value={input} onChange={setInput} onSubmit={submit} onStop={stop} generating={generation !== "idle"} disabled={generation !== "idle"} deepThinking={settings.showThinking} onToggleThinking={() => setSettings((current) => ({ ...current, showThinking: !current.showThinking }))} />
       </section>
       <SettingsDialog open={settingsOpen} settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} onDeleteAccount={deleteAccountData} />
+      {artifact && <ArtifactPanel artifact={artifact} onChange={(code) => setArtifact((current) => current ? { ...current, code } : null)} onClose={() => setArtifact(null)} />}
     </main>
   );
 }
