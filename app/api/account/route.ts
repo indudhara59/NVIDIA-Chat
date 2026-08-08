@@ -10,7 +10,7 @@ export async function DELETE() {
   if (!owner) return Response.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const db = await getDatabase();
-    await db.collection("conversations").deleteMany({ userId: owner });
+    await Promise.all([db.collection("conversations").deleteMany({ userId: owner }), db.collection("projects").deleteMany({ userId: owner })]);
     return Response.json({ ok: true });
   } catch (error) {
     console.error("Account data deletion failed", error instanceof Error ? error.message : "Unknown database error");

@@ -15,6 +15,15 @@ export type Conversation = {
   id: string;
   title: string;
   messages: ChatMessage[];
+  projectId?: string | null;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type ChatProject = {
+  id: string;
+  name: string;
+  instructions: string;
   createdAt: number;
   updatedAt: number;
 };

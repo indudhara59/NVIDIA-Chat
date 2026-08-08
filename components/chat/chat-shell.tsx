@@ -5,7 +5,7 @@ import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatStreamEvent, ModelMessage } from "@/lib/chat-protocol";
 import { clearConversationCache, createTitle, DEFAULT_SETTINGS, loadConversationCache, loadSettings, saveConversationCache, saveSettings } from "@/lib/chat-storage";
-import type { ChatMessage as ChatMessageType, ChatSettings, Conversation, GenerationState } from "@/lib/types";
+import type { ChatMessage as ChatMessageType, ChatProject, ChatSettings, Conversation, GenerationState } from "@/lib/types";
 import { ChatComposer } from "./chat-composer";
 import { ChatMessage } from "./chat-message";
 import { EmptyState } from "./empty-state";
@@ -23,7 +23,9 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [projects, setProjects] = useState<ChatProject[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_SETTINGS);
   const [generation, setGeneration] = useState<GenerationState>("idle");
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -55,6 +57,10 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
         saveConversationCache(user.email, data.conversations);
       })
       .catch(() => { if (active) setStorageError("Could not load your conversations. Please refresh to retry."); })
+    void fetch("/api/projects", { cache: "no-store" })
+      .then(async (response) => { if (!response.ok) throw new Error(); return response.json() as Promise<{ projects: ChatProject[] }>; })
+      .then((data) => { if (active) setProjects(data.projects); })
+      .catch(() => { if (active) setStorageError("Could not load your projects."); });
     return () => { active = false; };
   }, [user.email]);
   useEffect(() => {
@@ -126,7 +132,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     stop();
     const chat = conversations.find((item) => item.id === id);
     if (!chat) return;
-    activeIdRef.current = id; setActiveId(id); setMessages(chat.messages); setMobileOpen(false); nearBottomRef.current = true; userScrollLockedRef.current = false;
+    activeIdRef.current = id; setActiveId(id); setActiveProjectId(chat.projectId || null); setMessages(chat.messages); setMobileOpen(false); nearBottomRef.current = true; userScrollLockedRef.current = false;
     requestAnimationFrame(() => scrollToBottom("auto"));
   };
 
@@ -153,7 +159,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: modelMessages, config: { temperature: settings.temperature, maxTokens: settings.maxTokens, reasoningBudget: settings.reasoningBudget, enableThinking: settings.showThinking, tone: settings.tone, customInstructions: settings.customInstructions } }),
+        body: JSON.stringify({ messages: modelMessages, config: { temperature: settings.temperature, maxTokens: settings.maxTokens, reasoningBudget: settings.reasoningBudget, enableThinking: settings.showThinking, tone: settings.tone, customInstructions: settings.customInstructions, projectInstructions: projects.find((project) => project.id === activeProjectId)?.instructions || "" } }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -202,7 +208,7 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     if (!activeId) {
       const now = currentTime();
       activeIdRef.current = chatId; setActiveId(chatId);
-      setConversations((current) => [{ id: chatId, title: createTitle(prompt), messages: [], createdAt: now, updatedAt: now }, ...current]);
+      setConversations((current) => [{ id: chatId, title: createTitle(prompt), messages: [], projectId: activeProjectId, createdAt: now, updatedAt: now }, ...current]);
     }
     void streamConversation(chatId, nextMessages);
   };
@@ -234,6 +240,28 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
     stop(); setConversations([]); newChat();
     void fetch("/api/conversations", { method: "DELETE" }).then((response) => { if (!response.ok) setStorageError("Conversations could not be cleared."); });
   };
+  const createProject = () => {
+    const name = window.prompt("Project name")?.trim();
+    if (!name) return;
+    const instructions = window.prompt("Optional project instructions", "")?.trim() || "";
+    const now = currentTime();
+    const project: ChatProject = { id: crypto.randomUUID(), name: name.slice(0, 60), instructions: instructions.slice(0, 2000), createdAt: now, updatedAt: now };
+    setProjects((current) => [project, ...current]); setActiveProjectId(project.id); newChat(); setActiveProjectId(project.id);
+    void fetch("/api/projects", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(project) }).then((response) => { if (!response.ok) setStorageError("Project could not be created."); });
+  };
+  const selectProject = (id: string | null) => { stop(); activeIdRef.current = null; setActiveId(null); setMessages([]); setActiveProjectId(id); setMobileOpen(false); };
+  const renameProject = (id: string, name: string) => {
+    const project = projects.find((item) => item.id === id); if (!project) return;
+    const updated = { ...project, name: name.slice(0, 60), updatedAt: currentTime() };
+    setProjects((current) => current.map((item) => item.id === id ? updated : item));
+    void fetch("/api/projects", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updated) });
+  };
+  const deleteProject = (id: string) => {
+    setProjects((current) => current.filter((project) => project.id !== id));
+    setConversations((current) => current.map((chat) => chat.projectId === id ? { ...chat, projectId: null } : chat));
+    if (activeProjectId === id) selectProject(null);
+    void fetch(`/api/projects?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  };
   const deleteAccountData = () => {
     void fetch("/api/account", { method: "DELETE" }).then(async (response) => {
       if (!response.ok) { setStorageError("Account data could not be deleted."); return; }
@@ -256,9 +284,10 @@ export function ChatShell({ user }: { user: { name: string; email: string; image
   };
 
   const lastAssistantId = [...messages].reverse().find((message) => message.role === "assistant")?.id;
+  const visibleConversations = activeProjectId ? conversations.filter((chat) => chat.projectId === activeProjectId) : conversations;
   return (
     <main className={`app-shell ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`}>
-      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} conversations={conversations} activeId={activeId} user={user} onCloseMobile={() => setMobileOpen(false)} onCollapse={() => setSidebarCollapsed(true)} onNewChat={newChat} onSelect={selectChat} onRename={renameChat} onDelete={deleteChat} onClear={clearChats} onOpenSettings={() => setSettingsOpen(true)} />
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} conversations={visibleConversations} activeId={activeId} user={user} projects={projects} activeProjectId={activeProjectId} onCloseMobile={() => setMobileOpen(false)} onCollapse={() => setSidebarCollapsed(true)} onNewChat={newChat} onSelect={selectChat} onRename={renameChat} onDelete={deleteChat} onClear={clearChats} onOpenSettings={() => setSettingsOpen(true)} onCreateProject={createProject} onSelectProject={selectProject} onRenameProject={renameProject} onDeleteProject={deleteProject} />
       <section className="main-panel">
         <Header sidebarCollapsed={sidebarCollapsed} onOpenSidebar={() => { if (window.innerWidth < 768) setMobileOpen(true); else setSidebarCollapsed(false); }} />
         <div className="conversation-scroll" ref={scrollRef} onScroll={onScroll} onWheelCapture={(event) => { if (event.deltaY < 0) pauseAutoScroll(); }} onTouchStart={(event) => { touchYRef.current = event.touches[0]?.clientY ?? null; }} onTouchMove={(event) => { const y = event.touches[0]?.clientY; if (y !== undefined && touchYRef.current !== null && y > touchYRef.current + 3) pauseAutoScroll(); touchYRef.current = y ?? null; }}>

@@ -58,6 +58,9 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .chat-search { height: 38px; padding: 0 8px 0 10px; display: flex; align-items: center; gap: 8px; border: 1px solid #384139; border-radius: 8px; background: #111612; color: var(--muted); }
 .chat-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 12px; }
 .chat-search button { min-height: 25px; width: 25px; padding: 0; display: grid; place-items: center; }
+.project-list { max-height: 190px; margin-top: 20px; overflow-y: auto; scrollbar-width: thin; }
+.project-heading { height: 25px; padding: 0 7px; display: flex; align-items: center; justify-content: space-between; }.project-heading h2 { margin: 0; color: var(--muted-2); font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }.project-heading button { width: 25px; height: 25px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }.project-heading button:hover { background: var(--surface-hover); color: var(--text); }
+.project-item { position: relative; display: flex; align-items: center; border-radius: 8px; }.project-item.active { background: var(--surface-hover); }.project-item > button:first-child { width: 100%; height: 34px; padding: 0 31px 0 10px; display: flex; align-items: center; gap: 9px; border: 0; border-radius: 8px; background: transparent; color: #aeb6bb; font-size: 12px; text-align: left; cursor: pointer; }.project-item > button:first-child span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.project-more { position: absolute; right: 4px; width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); opacity: 0; cursor: pointer; }.project-item:hover .project-more, .project-item.active .project-more { opacity: 1; }.project-menu { top: 31px; }
 .chat-history { overflow-y: auto; margin-top: 22px; flex: 1; scrollbar-width: thin; scrollbar-color: #2b3238 transparent; }
 .chat-history section + section { margin-top: 22px; }
 .chat-history h2 { margin: 0 8px 7px; font-size: 10px; line-height: 1.4; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; color: var(--muted-2); }
@@ -213,6 +216,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 [data-theme="light"] .setting-field select:focus { border-color: #68923a; outline: 2px solid #76b90035; }
 [data-theme="light"] .chat-search, [data-theme="light"] .history-item form input { border-color: #c5ccc4; background: #fff; color: #171b18; }
 [data-theme="light"] .history-menu { border-color: #cbd1ca; background: #fff; box-shadow: 0 10px 30px #26302626; }
+[data-theme="light"] .project-item > button:first-child { color: #59625b; }
 [data-theme="light"] .share-button, [data-theme="light"] .scroll-bottom { border-color: #c8cec7; background: #fff; color: #4d574f; }
 [data-theme="light"] .message-avatar { border-color: #ccd2cb; background: #e9ece8; color: #58625a; }
 [data-theme="light"] .message.assistant .message-avatar { border-color: #bdd39e; background: #ebf3df; color: #4c7c09; }
