@@ -181,6 +181,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px sol
 .spin { animation: spin 1s linear infinite; }@keyframes spin { to { transform: rotate(360deg); } }
 .mode-button { height: 27px; margin-left: 3px; padding: 0 8px; display: flex; align-items: center; gap: 5px; border: 1px solid #334029; border-radius: 7px; background: #182015; color: #a8d56a; font-size: 10px; cursor: pointer; }
 .mode-button.deep { border-color: #554d35; background: #211e15; color: #e0c56f; }.mode-button:disabled { opacity: .5; cursor: default; }
+.voice-button { width: 27px; height: 27px; margin-left: 3px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }.voice-button:hover { background: var(--surface-hover); color: var(--text); }.voice-button.listening { background: #3a1d20; color: #f09a9f; animation: voice-pulse 1.4s ease-in-out infinite; }@keyframes voice-pulse { 50% { box-shadow: 0 0 0 4px #d85b6420; } }
 .composer-hint { margin-left: 7px; color: #596269; font-size: 10px; }
 .send-button { width: 29px; height: 29px; margin-left: auto; border: 0; border-radius: 8px; display: grid; place-items: center; color: #071000; background: var(--accent); cursor: pointer; transition: background 150ms, transform 150ms, opacity 150ms; }
 .send-button:hover:not(:disabled) { background: var(--accent-bright); transform: translateY(-1px); }.send-button:disabled { opacity: .25; cursor: default; }
